@@ -1,0 +1,827 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ERP Viandas Pro v15 - Costos Fijos Corregidos</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body class="bg-slate-900 text-slate-100 min-h-screen font-sans antialiased">
+
+    <div class="flex flex-col lg:flex-row min-h-screen">
+        
+        <aside class="w-full lg:w-64 bg-slate-950 p-6 flex flex-col justify-between border-b lg:border-b-0 lg:border-r border-slate-800">
+            <div>
+                <div class="flex items-center gap-3 mb-8">
+                    <i class="fa-solid fa-kitchen-set text-emerald-400 text-2xl"></i>
+                    <div>
+                        <h1 class="text-xl font-bold tracking-wider text-white">ViandasPro</h1>
+                        <span class="text-[10px] text-cyan-400 font-mono block">v15.0 Fixed Fijos</span>
+                    </div>
+                </div>
+                <nav class="space-y-2">
+                    <button onclick="cambiarPestana('caja')" id="btn-tab-caja" class="w-full flex items-center gap-3 bg-emerald-500/10 text-emerald-400 px-4 py-3 rounded-xl font-medium text-left transition cursor-pointer">
+                        <i class="fa-solid fa-cash-register"></i> Caja Diaria y Fechas
+                    </button>
+                    <button onclick="cambiarPestana('recetas')" id="btn-tab-recetas" class="w-full flex items-center gap-3 text-slate-400 hover:bg-slate-900 hover:text-slate-200 px-4 py-3 rounded-xl font-medium text-left transition cursor-pointer">
+                        <i class="fa-solid fa-book-open"></i> Escandallo, Insumos y Fijos
+                    </button>
+                </nav>
+            </div>
+            <div class="space-y-2 border-t border-slate-800 pt-4">
+                <button onclick="forzarReseteoCompleto()" class="w-full bg-rose-950/40 text-rose-400 border border-rose-900 hover:bg-rose-900 hover:text-white transition text-[11px] py-1.5 rounded-lg font-mono cursor-pointer">
+                    <i class="fa-solid fa-trash-can mr-1"></i> Reiniciar Base de Datos
+                </button>
+            </div>
+        </aside>
+
+        <main class="flex-1 p-4 sm:p-6 lg:p-8 space-y-6 overflow-y-auto">
+            
+            <div id="pestana-caja" class="space-y-6">
+                <div class="bg-slate-950 p-6 rounded-2xl border border-slate-800 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                    <div>
+                        <h2 class="text-2xl font-bold text-white">Flujo de Caja Quirúrgico</h2>
+                        <p class="text-slate-400 text-sm">Monitoreo de ingresos operativos y ganancia neta real.</p>
+                    </div>
+                    <div class="flex flex-wrap items-center gap-3 bg-slate-900 p-3 rounded-xl border border-slate-700 w-full md:w-auto">
+                        <div class="flex items-center gap-2">
+                            <label class="text-xs text-slate-400 font-mono">Desde:</label>
+                            <input type="date" id="filtro-desde" onchange="renderizarTodo()" class="bg-slate-950 text-sm text-slate-200 rounded p-1 border border-slate-700">
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <label class="text-xs text-slate-400 font-mono">Hasta:</label>
+                            <input type="date" id="filtro-hasta" onchange="renderizarTodo()" class="bg-slate-950 text-sm text-slate-200 rounded p-1 border border-slate-700">
+                        </div>
+                        <button onclick="resetearFechasFiltro()" class="text-xs bg-slate-800 hover:bg-slate-700 px-2 py-1 rounded text-slate-300 cursor-pointer">Ver Todo</button>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <div class="bg-slate-950 p-5 rounded-2xl border border-slate-800">
+                        <p class="text-sm font-medium text-slate-400 mb-2">Ingresos Filtrados</p>
+                        <p id="caja-total-ingresos" class="text-2xl font-bold text-emerald-400">$0</p>
+                    </div>
+                    <div class="bg-slate-950 p-5 rounded-2xl border border-slate-800">
+                        <p class="text-sm font-medium text-slate-400 mb-2">Egresos Operativos</p>
+                        <p id="caja-total-egresos" class="text-2xl font-bold text-rose-400">$0</p>
+                    </div>
+                    <div class="bg-slate-950 p-5 rounded-2xl border border-slate-800">
+                        <p class="text-sm font-medium text-slate-400 mb-1">Margen Bruto de Caja</p>
+                        <p id="caja-neto" class="text-2xl font-bold text-slate-200">$0</p>
+                    </div>
+                    <div class="bg-slate-950 p-5 rounded-2xl border border-slate-800">
+                        <p class="text-sm font-medium text-slate-400 mb-1">Ganancia Neta Real</p>
+                        <p id="caja-ganancia-neta-real" class="text-2xl font-bold text-slate-400">$0</p>
+                        <span class="text-[10px] text-slate-500 block">Deduciendo Fijos Actualizados</span>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 xl:grid-cols-3 gap-6">
+                    <div class="xl:col-span-1 bg-slate-950 p-6 rounded-2xl border border-slate-800 space-y-4 h-fit">
+                        <h3 id="titulo-form-caja" class="text-lg font-bold text-white border-b border-slate-800 pb-2"><i class="fa-solid fa-plus text-emerald-400 mr-2"></i>Cargar Rendimiento Diario</h3>
+                        <input type="hidden" id="form-caja-index" value="">
+                        <div class="grid grid-cols-2 gap-2">
+                            <div class="col-span-2">
+                                <label class="block text-xs text-slate-400 mb-1">Fecha de Operación</label>
+                                <input type="date" id="form-fecha" class="w-full bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-sm text-slate-200 focus:outline-none">
+                            </div>
+                            <div>
+                                <label class="block text-xs text-emerald-400 mb-1">In. Diarios ($)</label>
+                                <input type="number" id="form-ingreso_diarias" value="0" class="w-full bg-slate-900 border border-slate-700 rounded-xl p-2 text-sm text-slate-200">
+                            </div>
+                            <div>
+                                <label class="block text-xs text-emerald-400 mb-1">In. Semanales ($)</label>
+                                <input type="number" id="form-ingreso_semanales" value="0" class="w-full bg-slate-900 border border-slate-700 rounded-xl p-2 text-sm text-slate-200">
+                            </div>
+                        </div>
+                        <div class="space-y-2">
+                            <label class="block text-xs text-rose-400 font-semibold uppercase">Desglose de Caja Directo</label>
+                            <div class="grid grid-cols-2 gap-2">
+                                <div><label class="text-[10px] text-slate-400">Almacén</label><input type="number" id="form-almacen" value="0" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-1.5 text-xs text-slate-200"></div>
+                                <div><label class="text-[10px] text-slate-400">Pollo</label><input type="number" id="form-pollo" value="0" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-1.5 text-xs text-slate-200"></div>
+                                <div><label class="text-[10px] text-slate-400">Pescado</label><input type="number" id="form-pescado" value="0" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-1.5 text-xs text-slate-200"></div>
+                                <div><label class="text-[10px] text-slate-400">Carne</label><input type="number" id="form-carne" value="0" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-1.5 text-xs text-slate-200"></div>
+                                <div><label class="text-[10px] text-slate-400">Verdulería</label><input type="number" id="form-verduleria" value="0" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-1.5 text-xs text-slate-200"></div>
+                                <div><label class="text-[10px] text-slate-400">Packaging</label><input type="number" id="form-packaging" value="0" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-1.5 text-xs text-slate-200"></div>
+                                <div><label class="text-[10px] text-slate-400">Logística</label><input type="number" id="form-logistica" value="0" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-1.5 text-xs text-slate-200"></div>
+                                <div><label class="text-[10px] text-slate-400">Limpieza</label><input type="number" id="form-limpieza" value="0" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-1.5 text-xs text-slate-200"></div>
+                            </div>
+                        </div>
+                        <button onclick="guardarDia()" id="btn-submit-caja" class="w-full bg-emerald-600 hover:bg-emerald-500 font-bold py-2.5 rounded-xl transition text-sm text-white cursor-pointer">
+                            Guardar Caja del Día
+                        </button>
+                    </div>
+
+                    <div class="xl:col-span-2 bg-slate-950 p-6 rounded-2xl border border-slate-800 space-y-4 overflow-x-auto">
+                        <table class="w-full text-left border-collapse text-xs">
+                            <thead>
+                                <tr class="border-b border-slate-800 text-slate-400 uppercase">
+                                    <th class="p-3">Fecha</th>
+                                    <th class="p-3 text-emerald-400">Ingresos</th>
+                                    <th class="p-3 text-rose-400">Egresos Op.</th>
+                                    <th class="p-3">Balance Op.</th>
+                                    <th class="p-3 text-center">Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tabla-caja-cuerpo" class="divide-y divide-slate-900"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <div id="pestana-recetas" class="space-y-6 hidden">
+                
+                <div class="grid grid-cols-1 xl:grid-cols-3 gap-6">
+                    
+                    <div class="xl:col-span-1 bg-slate-950 p-6 rounded-2xl border border-slate-800 space-y-4">
+                        <div class="border-b border-slate-800 pb-2">
+                            <h3 class="text-lg font-bold text-white"><i class="fa-solid fa-building-columns text-amber-400 mr-2"></i>Estructura Fija Mensual</h3>
+                            <p class="text-slate-400 text-xs">Modificá los valores y hacé clic en "Guardar Costos Fijos" para recalcular los totales.</p>
+                        </div>
+                        <div class="space-y-3">
+                            <div><label class="block text-xs text-slate-400 mb-1">Empleados ($)</label><input type="number" id="fix-empleados" value="5390000" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-xs text-slate-100 font-mono"></div>
+                            <div><label class="block text-xs text-slate-400 mb-1">Servicio de Agua ($)</label><input type="number" id="fix-agua" value="100000" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-xs text-slate-100 font-mono"></div>
+                            <div><label class="block text-xs text-slate-400 mb-1">Servicio de Luz ($)</label><input type="number" id="fix-luz" value="300000" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-xs text-slate-100 font-mono"></div>
+                            <div><label class="block text-xs text-slate-400 mb-1">Gas ($)</label><input type="number" id="fix-gas" value="65000" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-xs text-slate-100 font-mono"></div>
+                            <div><label class="block text-xs text-slate-400 mb-1">Monotributo ($)</label><input type="number" id="fix-monotributo" value="460000" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-xs text-slate-100 font-mono"></div>
+                        </div>
+                        <button onclick="guardarCostosFijos()" class="w-full bg-amber-600 hover:bg-amber-500 font-bold py-2 rounded-lg text-xs text-white cursor-pointer transition">
+                            <i class="fa-solid fa-floppy-disk mr-1"></i> Guardar Costos Fijos
+                        </button>
+                        <div class="bg-slate-900 p-3 rounded-xl border border-slate-800 text-right mt-2">
+                            <span class="text-[10px] text-slate-400 block uppercase font-sans">Total Costos Fijos Calculados</span>
+                            <span id="txt-costo-fijo-total" class="text-xl font-mono font-bold text-amber-400">$0</span>
+                        </div>
+                    </div>
+
+                    <div class="xl:col-span-2 space-y-6">
+                        
+                        <div class="bg-slate-950 p-4 rounded-2xl border border-slate-800 space-y-2">
+                            <div class="flex justify-between items-center border-b border-slate-800 pb-2">
+                                <h4 class="text-sm font-bold text-white"><i class="fa-solid fa-list-ol text-cyan-400 mr-2"></i>Maestro Rápido de Precios Insumos</h4>
+                                <div class="relative flex items-center bg-slate-900 rounded px-2 py-0.5 border border-slate-700 w-48">
+                                    <input type="text" id="buscar-insumo" oninput="filtrarListaInsumos()" placeholder="Buscar insumo..." class="w-full bg-transparent text-[11px] text-white focus:outline-none">
+                                </div>
+                            </div>
+                            <div id="contenedor-maestro-insumos" class="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-40 overflow-y-auto pr-1 text-[11px] font-mono">
+                                </div>
+                        </div>
+
+                        <div class="bg-slate-950 p-6 rounded-2xl border border-indigo-500/30 bg-gradient-to-r from-slate-950 to-indigo-950/20 space-y-2">
+                            <div>
+                                <span class="bg-indigo-500/20 text-indigo-400 text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full">Arancel Colectivo Promedio</span>
+                                <h3 class="text-lg font-bold text-white mt-1">Precio Promedio de Vianda Estándar</h3>
+                                <p class="text-slate-400 text-xs">Arancel promedio puro calculado a partir de la suma de los precios sugeridos de todo tu menú.</p>
+                            </div>
+                            <div class="bg-slate-900/50 p-4 rounded-xl border border-slate-800 flex justify-between items-center">
+                                <span class="text-xs text-slate-300 font-medium">Referencia Unitaria del Catálogo:</span>
+                                <span id="txt-arancel-promedio-colectivo" class="text-2xl font-mono font-bold text-cyan-400">$0</span>
+                            </div>
+                        </div>
+
+                        <div class="bg-slate-950 p-6 rounded-2xl border border-slate-800 space-y-4">
+                            <div>
+                                <h3 class="text-lg font-bold text-white"><i class="fa-solid fa-tags text-cyan-400 mr-2"></i>Tus 5 Packs y Metas Comerciales Críticas</h3>
+                                <p class="text-slate-400 text-xs">Muestra cuántos packs individuales debés vender al mes para absorber tu estructura fija mensual.</p>
+                            </div>
+                            <div class="overflow-x-auto">
+                                <table class="w-full text-left text-xs border-collapse">
+                                    <thead>
+                                        <tr class="border-b border-slate-800 text-slate-400">
+                                            <th class="pb-2">Formato Comercial</th>
+                                            <th class="pb-2 text-right">Tu Precio Actual</th>
+                                            <th class="pb-2 text-right text-emerald-400">Precio Sugerido (Ref)</th>
+                                            <th class="pb-2 text-right text-cyan-400">Meta de Venta (Fijos)</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody class="divide-y divide-slate-900 font-mono">
+                                        <tr id="row-pack-5"><td class="py-2.5 font-sans text-white font-medium">Pack x5 <span class="text-[9px] text-slate-500 block">Envío a cargo del cliente</span></td><td class="py-2.5 text-right"><input type="number" id="pack-p-5" value="55000" oninput="recalcularEstrategiaPrecios()" class="bg-slate-900 text-right w-24 p-1 rounded border border-slate-700"></td><td id="sug-p-5" class="py-2.5 text-right text-emerald-400 font-bold">$0</td><td id="pe-5" class="py-2.5 text-right text-cyan-400 font-bold">0</td></tr>
+                                        <tr id="row-pack-10"><td class="py-2.5 font-sans text-white font-medium">Pack x10 <span class="text-[9px] text-emerald-500 block">ENVIO SIN CARGO</span></td><td class="py-2.5 text-right"><input type="number" id="pack-p-10" value="102000" oninput="recalcularEstrategiaPrecios()" class="bg-slate-900 text-right w-24 p-1 rounded border border-slate-700"></td><td id="sug-p-10" class="py-2.5 text-right text-emerald-400 font-bold">$0</td><td id="pe-10" class="py-2.5 text-right text-cyan-400 font-bold">0</td></tr>
+                                        <tr id="row-pack-15"><td class="py-2.5 font-sans text-white font-medium">Pack x15 <span class="text-[9px] text-emerald-500 block">ENVIO SIN CARGO</span></td><td class="py-2.5 text-right"><input type="number" id="pack-p-15" value="152000" oninput="recalcularEstrategiaPrecios()" class="bg-slate-900 text-right w-24 p-1 rounded border border-slate-700"></td><td id="sug-p-15" class="py-2.5 text-right text-emerald-400 font-bold">$0</td><td id="pe-15" class="py-2.5 text-right text-cyan-400 font-bold">0</td></tr>
+                                        <tr id="row-pack-20"><td class="py-2.5 font-sans text-white font-medium">Pack x20 <span class="text-[9px] text-emerald-500 block">ENVIO SIN CARGO</span></td><td class="py-2.5 text-right"><input type="number" id="pack-p-20" value="195500" oninput="recalcularEstrategiaPrecios()" class="bg-slate-900 text-right w-24 p-1 rounded border border-slate-700"></td><td id="sug-p-20" class="py-2.5 text-right text-emerald-400 font-bold">$0</td><td id="pe-20" class="py-2.5 text-right text-cyan-400 font-bold">0</td></tr>
+                                        <tr id="row-pack-30"><td class="py-2.5 font-sans text-white font-medium">Pack x30 <span class="text-[9px] text-emerald-500 block">ENVIO SIN CARGO</span></td><td class="py-2.5 text-right"><input type="number" id="pack-p-30" value="276000" oninput="recalcularEstrategiaPrecios()" class="bg-slate-900 text-right w-24 p-1 rounded border border-slate-700"></td><td id="sug-p-30" class="py-2.5 text-right text-emerald-400 font-bold">$0</td><td id="pe-30" class="py-2.5 text-right text-cyan-400 font-bold">0</td></tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <div class="bg-slate-950 p-6 rounded-2xl border border-slate-800 space-y-4">
+                            <div class="flex flex-col sm:flex-row justify-between border-b border-slate-800 pb-2">
+                                <h3 class="text-lg font-bold text-white"><i class="fa-solid fa-calculator text-indigo-400 mr-2"></i>Escandallo y Armado del Menú</h3>
+                                <div class="flex items-center gap-2 text-xs">
+                                    <label class="text-slate-400">Adicional Carne Online ($):</label>
+                                    <input type="number" id="cfg-adicional-carne" value="3000" oninput="recalcularEstrategiaPrecios()" class="bg-slate-900 border border-slate-700 w-24 p-1 text-center rounded text-white font-bold">
+                                </div>
+                            </div>
+
+                            <div class="grid grid-cols-1 sm:grid-cols-4 gap-2 pt-2">
+                                <input type="hidden" id="rec-id-editar" value="">
+                                <input type="text" id="rec-nombre" placeholder="Nombre de la vianda (ej: Pastel de Papa)" class="bg-slate-900 border border-slate-700 rounded p-2 text-xs text-white col-span-1 sm:col-span-2">
+                                <select id="rec-categoria" class="bg-slate-900 border border-slate-700 rounded p-2 text-xs text-white">
+                                    <option value="Estandar">Estándar (Pollo/Pasta/Veg)</option>
+                                    <option value="Carne">Categoría Vacuna (Carne)</option>
+                                </select>
+                                <div class="relative rounded border border-slate-700 bg-slate-900 flex items-center px-2">
+                                    <label class="text-[10px] text-slate-400 mr-1">Margen %:</label>
+                                    <input type="number" id="rec-margen-objetivo" value="20" class="w-full bg-transparent p-1 text-xs text-white font-bold font-mono focus:outline-none">
+                                </div>
+                            </div>
+
+                            <div class="bg-slate-900/40 p-4 rounded-xl border border-slate-800 space-y-3">
+                                <div class="text-xs font-semibold text-cyan-400 uppercase tracking-wider"><i class="fa-solid fa-basket-shopping mr-1"></i> Incorporar Insumo a la Receta</div>
+                                <div class="grid grid-cols-1 sm:grid-cols-4 gap-2 items-end">
+                                    <div class="sm:col-span-2">
+                                        <label class="block text-[10px] text-slate-400 mb-1">Seleccionar Insumo Desplegable</label>
+                                        <select id="selector-insumos-receta" onchange="adaptarUnidadFormularioReceta()" class="w-full bg-slate-950 border border-slate-700 rounded p-2 text-xs text-slate-200 focus:outline-none">
+                                            </select>
+                                    </div>
+                                    <div>
+                                        <label class="block text-[10px] text-slate-400 mb-1">Cantidad Física Utilizada</label>
+                                        <input type="number" id="cantidad-insumo-receta" placeholder="Ej: 250" class="w-full bg-slate-950 border border-slate-700 rounded p-2 text-xs text-white font-mono">
+                                    </div>
+                                    <div>
+                                        <label class="block text-[10px] text-slate-400 mb-1">Unidad Utilizada</label>
+                                        <select id="unidad-insumo-receta" class="w-full bg-slate-950 border border-slate-700 rounded p-2 text-xs text-white bg-slate-900">
+                                            </select>
+                                    </div>
+                                </div>
+                                <button onclick="agregarInsumoALaListaTemporal()" class="bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 text-xs py-1.5 px-4 rounded-lg cursor-pointer transition">
+                                    <i class="fa-solid fa-plus mr-1 text-cyan-400"></i> Insertar Insumo en el Plato
+                                </button>
+
+                                <div class="pt-2">
+                                    <div id="lista-insumos-temporales-receta" class="flex flex-wrap gap-1.5 text-[11px]"></div>
+                                </div>
+                            </div>
+
+                            <div class="pt-2 flex justify-end">
+                                <button onclick="guardarRecetaCompleta()" id="btn-guardar-receta" class="bg-cyan-600 hover:bg-cyan-500 text-white font-bold py-2 px-6 rounded-xl text-xs transition cursor-pointer">
+                                    <i class="fa-solid fa-floppy-disk mr-1"></i> Guardar Ficha Completa de la Vianda
+                                </button>
+                            </div>
+
+                            <div class="overflow-x-auto pt-2">
+                                <table class="w-full text-left text-xs border-collapse">
+                                    <thead>
+                                        <tr class="text-slate-500 border-b border-slate-800 uppercase tracking-wider text-[10px]">
+                                            <th class="pb-2">Ficha de Vianda</th>
+                                            <th class="pb-2 text-right">Costo Elaboración</th>
+                                            <th class="pb-2 text-center">Margen Deseado</th>
+                                            <th class="pb-2 text-right text-amber-500">Ganancia Deja</th>
+                                            <th class="pb-2 text-right text-emerald-400 font-bold">Arancel Final Venta</th>
+                                            <th class="pb-2 text-center">Acciones</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="tabla-recetas-cuerpo" class="divide-y divide-slate-900"></tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+
+            </div>
+        </main>
+    </div>
+
+    <div id="modal-margen" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4 hidden z-50">
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-lg p-6 space-y-4 shadow-2xl relative">
+            <button onclick="cerrarModal()" class="absolute top-4 right-4 text-slate-400 hover:text-white text-lg"><i class="fa-solid fa-xmark"></i></button>
+            <div>
+                <span id="modal-badge" class="text-[10px] font-bold uppercase px-2 py-0.5 rounded"></span>
+                <h3 id="modal-titulo" class="text-xl font-bold text-white mt-1">Nombre</h3>
+                <p class="text-slate-400 text-xs">Auditoría de vianda contra tus tarifas activas.</p>
+            </div>
+            <div class="grid grid-cols-3 gap-2 font-mono text-center text-xs">
+                <div class="p-2 bg-slate-950 rounded-xl border border-slate-800">
+                    <span class="text-slate-500 block text-[10px]">COSTO</span>
+                    <span id="modal-costo-total" class="font-bold text-white">$0</span>
+                </div>
+                <div class="p-2 bg-slate-950 rounded-xl border border-slate-800">
+                    <span class="text-slate-500 block text-[10px]">GANANCIA BASE</span>
+                    <span id="modal-ganancia-base" class="font-bold text-amber-400">$0</span>
+                </div>
+                <div class="p-2 bg-slate-950 rounded-xl border border-slate-800">
+                    <span class="text-slate-500 block text-[10px]">ARANCEL PROPIO</span>
+                    <span id="modal-arancel-base" class="font-bold text-emerald-400">$0</span>
+                </div>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="w-full text-left text-xs border-collapse">
+                    <thead>
+                        <tr class="text-slate-500 border-b border-slate-800 font-semibold">
+                            <th class="pb-2">Canal Pack</th>
+                            <th class="pb-2 text-right">Cobro Unitario Implícito</th>
+                            <th class="pb-2 text-right">Ganancia Real Pesos</th>
+                            <th class="pb-2 text-right">Margen Real %</th>
+                        </tr>
+                    </thead>
+                    <tbody id="modal-tabla-cuerpo" class="divide-y divide-slate-950 font-mono"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let db;
+
+        const listaNombresInsumos = [
+            "ACEITE", "ARROZ GALLO", "ARVEJAS PAQUETE", "CALDO", "CAPELLETIS", "CASANCREM", "CHAMPIGNON", "CHEDAR", "CREMA DE LECHE", "HUEVOS", "JAMON COCIDO PIEZA", "JUGO DE LIMON", "LATA DE TOMATELAVANDINA", "LECHE", "LENTEJAS PAQUETE", "MANTECA", "MOSTACHO", "MOZARELLA", "PAN HAMBURGUESA", "PAN MILANESA FABIÁN", "PENNE RIGATTE", "PIZZA CEBOLLA ALICIA", "PIZZA TOMATE ALICIA", "QUESO CREMA", "QUESO RALLADO HORMA", "RICOTTA", "TALLARINES", "TAPA EMPANADAS TUBO", "TAPA TARTAS", "TAPAS LASAGNA", "TIRABUZÓN", "TOMATES SECOS",
+            "BIFES DE COSTILLA", "BONDIOLA", "CHORIZOS", "COLITA DE CUADRIL", "COSTILLITAS DE CERDO", "CUADRIL DE CERDO", "FILET DE MERLUZA EMPANADO", "JAMÓN DE CERDO", "LOMO", "LOMO DE ATÚN", "MATAMBRE DE CARNE", "MATAMBRE DE POLLO COCIDO", "MATAMBRE DE POLLO CRUD", "MATAMBRITO DE CERDO", "MEDALLONES DE MERLUZA", "MEDALLONES DE POLLO", "MILANESA DE CARNE", "MILANESA DE CERDO", "MILANESA DE POLLO", "MUSLO CAJON", "NALGA MILANESA", "PALETA", "PALOMITA", "PATA Y MUSLO", "PECETO", "PECHITO DE CERDO", "PICADA COMUN", "POLLO ENTERO", "ROAS BEEF", "SUPREMAS", "TAPA DE NALGA", "VACIO",
+            "ACELGA", "AJO", "ALBAHACA", "ANCO", "BATATA", "BERENJENA", "BROCOLI", "CABUTIA", "CEBOLLA", "CHOCLO", "ESPINACA", "LECHUGA", "LIMON", "MORRON ROJO", "MORRON VERDE", "PAPAS", "PUERRO", "PEREJIL", "REMOLACHA", "RUCULA", "TOMATE", "TOMATE PVERDEO", "ZANAHORIA", "ZAPALLITO", "ZUCHINNI",
+            "JABON MANOS", "BANDEJA CUADRADA 105 ECO OVALADA PREMIUM X100", "BANDEJA 103 ECO CUADRADA ESTÁNDAR X100", "BANDEJA 102 ECO CUADRADA ENSALADA X100", "BROCHES 10/50", "ROLLO ALUMINIO 1KCINTA PAPEL", "BANDEJA ALUMINO PIZZA X100", "BOLSA CAMISETA 40 X 50", "BOLSA CAMISETA 45 X 60", "BANDEJA ALUMINIO CUADRADA PASTEL BF75 X100", "TAPA ALUMINIO CUADRADA PASTEL F75 X100", "CAJA CARTÓN 35X25X25", "RESMITA 75 GRS.", "POTES POSTRES 250 CC", "TAPAS POTES POSTRE", "POTES POSTRES 1/8", "CINTA ENVALAR ANCHA", "CUCHILLO descartable unidad", "tenedor descartable unidad", "SERVILLETA DE PAPEL X 80", "CAJAS 40 x 30 x 30", "CUCHARITAS SUNDAE", "BANDEJAS CARTÓN PARA TARTA DE 19 CMS. Nº12", "BANDEJA TELGOPOR 615 SANDWICH X100", "BANDEJA TELGOPOR PARA TORTILLA GRANDE X100", "FILM PVC 38 CMS PREMIUM 500 MTS", "BANDEJA BISAGRA 143 PP WORK X400(?", "BANDEJA BISAGRA 143 CON TAPA PARA LIQUIDO BANDEX CUADRADA", "BANDEJA BISAGRA 145 PP WORK X200(?", "BANDEJA BISAGRA 145 CON TAPA PARA LIQUIDO BANDEX OVALADA", "BOLSA MADERA CON MANIJA Nº8 X50"
+        ];
+
+        let insumosAsignadosTemporales = [];
+
+        function inicializarBaseDeDatos() {
+            let maestroInsumosInicial = {};
+            let maestroUnidadesInicial = {};
+
+            listaNombresInsumos.forEach(nombre => {
+                if(nombre.includes("BANDEJA") || nombre.includes("BOLSA") || nombre.includes("TAPA") || nombre.includes("POTE") || nombre.includes("descartable") || nombre.includes("CAJA") || nombre.includes("TARTAS")) {
+                    maestroInsumosInicial[nombre] = 120; 
+                    maestroUnidadesInicial[nombre] = "ud"; 
+                } else if(nombre.match(/(ACEITE|LECHE|JUGO|LIQUIDO|LITRO|LAVANDINA)/i)) {
+                    maestroInsumosInicial[nombre] = 1800;
+                    maestroUnidadesInicial[nombre] = "L";  
+                } else if(nombre.match(/(LOMO|CARNE|FILET|BIFES|NALGA|POLLO|BONDIOLA|VACIO|PAPA|CEBOLLA|MORRON|ZANAHORIA|ARROZ|HARINA)/i)) {
+                    maestroUnidadesInicial[nombre] = "kg"; 
+                    maestroInsumosInicial[nombre] = nombre.match(/(LOMO|VACIO|BIFES|ATÚN)/i) ? 9500 : 3500;
+                } else {
+                    maestroInsumosInicial[nombre] = 2200;
+                    maestroUnidadesInicial[nombre] = "kg";
+                }
+            });
+
+            const semillaDefecto = {
+                caja: [{fecha: new Date().toISOString().split('T')[0], ingreso_diarias: 350000, ingreso_semanales: 820000, almacen: 80000, pollo: 65000, pescado: 30000, carne: 140000, verduleria: 45000, packaging: 22000, logistica: 55000, limpieza: 5000}],
+                maestro_insumos: maestroInsumosInicial,
+                maestro_unidades: maestroUnidadesInicial,
+                costos_fijos: { empleados: 5390000, agua: 100000, luz: 300000, gas: 65000, monotributo: 460000 }, // Estructura unificada fijos
+                recetas: [
+                    {id: 1, nombre: 'Milanesa de Suprema con Puré', categoria: 'Estandar', margen_objetivo: 20, ingredientes: [{ nombre: "SUPREMAS", cantidad: 180, unidad: "g" }, { nombre: "PAPAS", cantidad: 250, unidad: "g" }, { nombre: "BANDEJA 103 ECO CUADRADA ESTÁNDAR X100", cantidad: 1, unidad: "ud" }]},
+                    {id: 2, nombre: 'Bifes de Costilla con Vegetales', categoria: 'Carne', margen_objetivo: 25, ingredientes: [{ nombre: "BIFES DE COSTILLA", cantidad: 220, unidad: "g" }, { nombre: "MORRON ROJO", cantidad: 80, unidad: "g" }, { nombre: "BANDEJA CUADRADA 105 ECO OVALADA PREMIUM X100", cantidad: 1, unidad: "ud" }]}
+                ]
+            };
+
+            try {
+                let datosLocales = localStorage.getItem('erp_viandas_v15_final');
+                if (datosLocales) db = JSON.parse(datosLocales);
+                else {
+                    db = semillaDefecto;
+                    localStorage.setItem('erp_viandas_v15_final', JSON.stringify(db));
+                }
+                if(!db.costos_fijos) db.costos_fijos = semillaDefecto.costos_fijos;
+            } catch (error) {
+                db = semillaDefecto;
+            }
+        }
+
+        function persistir() {
+            try { localStorage.setItem('erp_viandas_v15_final', JSON.stringify(db)); } catch (e) {}
+        }
+
+        function forzarReseteoCompleto() {
+            try { localStorage.removeItem('erp_viandas_v15_final'); } catch(e){}
+            location.reload();
+        }
+
+        function cambiarPestana(pestana) {
+            document.getElementById('pestana-caja').classList.toggle('hidden', pestana !== 'caja');
+            document.getElementById('pestana-recetas').classList.toggle('hidden', pestana !== 'recetas');
+            document.getElementById('btn-tab-caja').className = pestana === 'caja' ? "w-full flex items-center gap-3 bg-emerald-500/10 text-emerald-400 px-4 py-3 rounded-xl font-medium text-left transition cursor-pointer" : "w-full flex items-center gap-3 text-slate-400 hover:bg-slate-900 px-4 py-3 rounded-xl font-medium text-left transition cursor-pointer";
+            document.getElementById('btn-tab-recetas').className = pestana === 'recetas' ? "w-full flex items-center gap-3 bg-cyan-500/10 text-cyan-400 px-4 py-3 rounded-xl font-medium text-left transition cursor-pointer" : "w-full flex items-center gap-3 text-slate-400 hover:bg-slate-900 px-4 py-3 rounded-xl font-medium text-left transition cursor-pointer";
+        }
+
+        function resetearFechasFiltro() {
+            document.getElementById('filtro-desde').value = '';
+            document.getElementById('filtro-hasta').value = '';
+            renderizarTodo();
+        }
+
+        // CARGAR VALORES FIJOS EN INPUTS
+        function cargarCostosFijosUI() {
+            if(!db.costos_fijos) db.costos_fijos = { empleados: 5390000, agua: 100000, luz: 300000, gas: 65000, monotributo: 460000 };
+            document.getElementById('fix-empleados').value = db.costos_fijos.empleados;
+            document.getElementById('fix-agua').value = db.costos_fijos.agua;
+            document.getElementById('fix-luz').value = db.costos_fijos.luz;
+            document.getElementById('fix-gas').value = db.costos_fijos.gas;
+            document.getElementById('fix-monotributo').value = db.costos_fijos.monotributo;
+        }
+
+        function obtenerCostosFijosMensuales() {
+            if(!db.costos_fijos) return 5915000;
+            return (db.costos_fijos.empleados || 0) + (db.costos_fijos.agua || 0) + (db.costos_fijos.luz || 0) + (db.costos_fijos.gas || 0) + (db.costos_fijos.monotributo || 0);
+        }
+
+        // REQUERIMIENTO: BOTÓN GUARDAR COSTOS FIJOS CORRECTAMENTE CONECTADO
+        function guardarCostosFijos() {
+            try {
+                db.costos_fijos.empleados = parseFloat(document.getElementById('fix-empleados').value) || 0;
+                db.costos_fijos.agua = parseFloat(document.getElementById('fix-agua').value) || 0;
+                db.costos_fijos.luz = parseFloat(document.getElementById('fix-luz').value) || 0;
+                db.costos_fijos.gas = parseFloat(document.getElementById('fix-gas').value) || 0;
+                db.costos_fijos.monotributo = parseFloat(document.getElementById('fix-monotributo').value) || 0;
+
+                persistir();
+                
+                // Forzar actualización en los textos de UI y recálculos financieros
+                const total = obtenerCostosFijosMensuales();
+                document.getElementById('txt-costo-fijo-total').innerText = `$${total.toLocaleString('es-AR')}`;
+                
+                recalcularEstrategiaPrecios();
+                renderizarTodo();
+                
+                alert('¡Costos fijos guardados y aplicados correctamente en la rentabilidad!');
+            } catch (err) {
+                alert('Error al guardar costos fijos: ' + err.message);
+            }
+        }
+
+        function actualizarCostosFijosTotales() {
+            // Se mantiene para cambios en tiempo real ligeros pero ahora requiere dar clic en Guardar para persistir en caja
+            const total = obtenerCostosFijosMensuales();
+            document.getElementById('txt-costo-fijo-total').innerText = `$${total.toLocaleString('es-AR')}`;
+        }
+
+        function renderizarListaPreciosInsumos() {
+            const contenedor = document.getElementById('contenedor-maestro-insumos');
+            if(!contenedor) return;
+
+            let html = "";
+            listaNombresInsumos.forEach(nombre => {
+                const precioActual = db.maestro_insumos[nombre] || 0;
+                const unidadActual = db.maestro_unidades[nombre] || "kg";
+                
+                html += `
+                    <div class="item-insumo-maestro flex justify-between items-center bg-slate-900 p-2 rounded-lg border border-slate-800" data-nombre="${nombre}">
+                        <span class="text-[11px] text-slate-300 break-words w-1/2">${nombre}</span>
+                        <div class="flex items-center gap-1 justify-end w-1/2">
+                            <select onchange="actualizarUnidadInsumoDirecto('${nombre}', this.value)" class="bg-slate-950 border border-slate-700 rounded p-0.5 text-[10px] text-cyan-400 font-bold focus:outline-none">
+                                <option value="kg" ${unidadActual === 'kg' ? 'selected' : ''}>x Kg</option>
+                                <option value="L" ${unidadActual === 'L' ? 'selected' : ''}>x Litro</option>
+                                <option value="ud" ${unidadActual === 'ud' ? 'selected' : ''}>x Ud</option>
+                            </select>
+                            <input type="number" value="${precioActual}" oninput="actualizarPrecioInsumoDirecto('${nombre}', this.value)" class="w-14 bg-slate-950 border border-slate-700 rounded p-0.5 text-right text-xs text-white font-bold font-mono">
+                        </div>
+                    </div>
+                `;
+            });
+            contenedor.innerHTML = html;
+        }
+
+        function actualizarPrecioInsumoDirecto(nombre, valor) {
+            db.maestro_insumos[nombre] = parseFloat(valor) || 0;
+            persistir();
+            recalcularEstrategiaPrecios();
+            renderizarRecetas();
+            renderizarTodo();
+        }
+
+        function actualizarUnidadInsumoDirecto(nombre, unidad) {
+            db.maestro_unidades[nombre] = unidad;
+            persistir();
+            adaptarUnidadesEnSelector();
+            recalcularEstrategiaPrecios();
+            renderizarRecetas();
+            renderizarTodo();
+        }
+
+        function filtrarListaInsumos() {
+            const query = document.getElementById('buscar-insumo').value.toUpperCase();
+            const items = document.getElementsByClassName('item-insumo-maestro');
+            Array.from(items).forEach(item => {
+                const nombre = item.getAttribute('data-nombre') || "";
+                item.classList.toggle('hidden', !nombre.includes(query));
+            });
+        }
+
+        function llenarSelectorInsumosReceta() {
+            const selector = document.getElementById('selector-insumos-receta');
+            if(!selector) return;
+            selector.innerHTML = listaNombresInsumos.map(n => `<option value="${n}">${n}</option>`).join("");
+            adaptarUnidadesEnSelector();
+        }
+
+        function adaptarUnidadesEnSelector() {
+            const selectInsumo = document.getElementById('selector-insumos-receta');
+            const selectUnidad = document.getElementById('unidad-insumo-receta');
+            if(!selectInsumo || !selectUnidad) return;
+
+            const insumoSeleccionado = selectInsumo.value;
+            const unidadBaseCompra = db.maestro_unidades[insumoSeleccionado] || "kg";
+
+            if(unidadBaseCompra === "kg") {
+                selectUnidad.innerHTML = `<option value="g">Gramos (g)</option><option value="kg">Kilogramos (kg)</option>`;
+            } else if(unidadBaseCompra === "L") {
+                selectUnidad.innerHTML = `<option value="ml">Mililitros (ml)</option><option value="L">Litros (L)</option>`;
+            } else {
+                selectUnidad.innerHTML = `<option value="ud">Unidades (ud)</option>`;
+            }
+        }
+
+        function adaptarUnidadFormularioReceta() { adaptarUnidadesEnSelector(); }
+
+        function agregarInsumoALaListaTemporal() {
+            const selectInsumo = document.getElementById('selector-insumos-receta');
+            const qtyInput = document.getElementById('cantidad-insumo-receta');
+            const selectUnidad = document.getElementById('unidad-insumo-receta');
+
+            if(!qtyInput || parseFloat(qtyInput.value) <= 0 || isNaN(parseFloat(qtyInput.value))) return alert('Por favor, ingresá una cantidad válida.');
+
+            insumosAsignadosTemporales.push({
+                nombre: selectInsumo.value,
+                cantidad: parseFloat(qtyInput.value),
+                unidad: selectUnidad.value
+            });
+
+            renderizarInsumosTemporalesHTML();
+            qtyInput.value = "";
+        }
+
+        function quitarInsumoTemporal(idx) {
+            insumosAsignadosTemporales.splice(idx, 1);
+            renderizarInsumosTemporalesHTML();
+        }
+
+        function renderizarInsumosTemporalesHTML() {
+            document.getElementById('lista-insumos-temporales-receta').innerHTML = insumosAsignadosTemporales.map((ins, index) => `
+                <span class="inline-flex items-center gap-1 bg-slate-800 border border-slate-700 rounded-full px-2.5 py-1 text-[11px] text-slate-200">
+                    <strong>${ins.nombre}</strong>: ${ins.cantidad}${ins.unidad}
+                    <button onclick="quitarInsumoTemporal(${index})" class="text-rose-400 hover:text-rose-300 ml-1 font-bold cursor-pointer">×</button>
+                </span>
+            `).join("");
+        }
+
+        function guardarRecetaCompleta() {
+            const nombreInput = document.getElementById('rec-nombre');
+            if(!nombreInput || !nombreInput.value.trim()) return alert('Ingresá el nombre de la vianda.');
+            if(insumosAsignadosTemporales.length === 0) return alert('Añadí al menos un ingrediente.');
+
+            const idEditar = document.getElementById('rec-id-editar').value;
+            const datos = {
+                nombre: nombreInput.value.trim(),
+                categoria: document.getElementById('rec-categoria').value,
+                margen_objetivo: parseFloat(document.getElementById('rec-margen-objetivo').value) || 20,
+                ingredientes: [...insumosAsignadosTemporales]
+            };
+
+            if(idEditar) {
+                const idx = db.recetas.findIndex(r => r.id == idEditar);
+                if(idx !== -1) db.recetas[idx] = { id: parseInt(idEditar), ...datos };
+                document.getElementById('rec-id-editar').value = "";
+                document.getElementById('btn-guardar-receta').innerHTML = `<i class="fa-solid fa-floppy-disk mr-1"></i> Guardar Ficha Completa de la Vianda`;
+                document.getElementById('btn-guardar-receta').className = "bg-cyan-600 hover:bg-cyan-500 font-bold py-2 px-6 rounded-xl text-xs text-white cursor-pointer";
+            } else {
+                db.recetas.push({ id: Date.now(), ...datos });
+            }
+
+            persistir();
+            insumosAsignadosTemporales = [];
+            renderizarInsumosTemporalesHTML();
+            recalcularEstrategiaPrecios();
+            renderizarTodo();
+
+            nombreInput.value = "";
+            document.getElementById('rec-margen-objetivo').value = 20;
+            alert('¡Receta guardada con éxito!');
+        }
+
+        function cargarParaEditar(id) {
+            const r = db.recetas.find(item => item.id === id);
+            if(!r) return;
+
+            document.getElementById('rec-id-editar').value = r.id;
+            document.getElementById('rec-nombre').value = r.nombre;
+            document.getElementById('rec-categoria').value = r.categoria;
+            document.getElementById('rec-margen-objetivo').value = r.margen_objetivo;
+
+            insumosAsignadosTemporales = [...(r.ingredientes || [])];
+            renderizarInsumosTemporalesHTML();
+
+            document.getElementById('btn-guardar-receta').innerHTML = `<i class="fa-solid fa-circle-check mr-1"></i> Actualizar Ficha de la Vianda`;
+            document.getElementById('btn-guardar-receta').className = "bg-amber-600 hover:bg-amber-500 font-bold py-2 px-6 rounded-xl text-xs text-white cursor-pointer";
+            document.getElementById('rec-nombre').focus();
+        }
+
+        function calcularCostoElaboracionReceta(r) {
+            let total = 0;
+            if(!r.ingredientes) return 0;
+            r.ingredientes.forEach(ins => {
+                const precioMaestro = db.maestro_insumos[ins.nombre] || 0;
+                if(ins.unidad === "g" || ins.unidad === "ml") total += (ins.cantidad / 1000) * precioMaestro;
+                else total += ins.cantidad * precioMaestro;
+            });
+            return total;
+        }
+
+        function recalcularEstrategiaPrecios() {
+            try {
+                if(!db.recetas || db.recetas.length === 0) return;
+
+                let sumaArancelesFinales = 0, sumaCostosVariablesTotales = 0;
+
+                db.recetas.forEach(r => {
+                    const costElaboracion = calcularCostoElaboracionReceta(r);
+                    const margen = r.margen_objetivo || 20;
+                    const arancelSugeridoPlato = costElaboracion / (1 - (margen / 100));
+                    sumaArancelesFinales += arancelSugeridoPlato;
+                    sumaCostosVariablesTotales += costElaboracion;
+                });
+
+                const arancelPromedioColectivo = sumaArancelesFinales / db.recetas.length;
+                const costoVariablePromedioUnidad = sumaCostosVariablesTotales / db.recetas.length;
+
+                document.getElementById('txt-arancel-promedio-colectivo').innerText = `$${arancelPromedioColectivo.toFixed(0)}`;
+
+                const costoFijoMensual = obtenerCostosFijosMensuales();
+                const packs = [5, 10, 15, 20, 30];
+
+                packs.forEach(size => {
+                    const packInput = document.getElementById(`pack-p-${size}`);
+                    const precioPackActual = packInput ? (parseFloat(packInput.value) || 0) : 0;
+                    
+                    const sugeridoPackTotal = arancelPromedioColectivo * size;
+                    document.getElementById(`sug-p-${size}`).innerText = `$${sugeridoPackTotal.toFixed(0)}`;
+
+                    const costoVariablePackTotal = costoVariablePromedioUnidad * size;
+                    const margenContribucionPack = precioPackActual - costoVariablePackTotal;
+
+                    const peElem = document.getElementById(`pe-${size}`);
+                    const rowElem = document.getElementById(`row-pack-${size}`);
+                    
+                    if (peElem && rowElem) {
+                        if(margenContribucionPack > 0) {
+                            peElem.innerText = Math.ceil(costoFijoMensual / margenContribucionPack).toLocaleString() + " packs/mes";
+                            rowElem.className = "divide-y divide-slate-900 font-mono";
+                        } else {
+                            peElem.innerText = "¡PÉRDIDA!";
+                            rowElem.className = "bg-rose-950/20 divide-y divide-slate-900 font-mono text-rose-400";
+                        }
+                    }
+                });
+            } catch (e) { console.error(e); }
+        }
+
+        function guardarDia() {
+            const fecha = document.getElementById('form-fecha').value;
+            if(!fecha) return alert('Selecciona una fecha');
+            
+            const indexEditar = document.getElementById('form-caja-index').value;
+            const datosCaja = {
+                fecha,
+                ingreso_diarias: parseFloat(document.getElementById('form-ingreso_diarias').value) || 0,
+                ingreso_semanales: parseFloat(document.getElementById('form-ingreso_semanales').value) || 0,
+                almacen: parseFloat(document.getElementById('form-almacen').value) || 0,
+                pollo: parseFloat(document.getElementById('form-pollo').value) || 0,
+                pescado: parseFloat(document.getElementById('form-pescado').value) || 0,
+                carne: parseFloat(document.getElementById('form-carne').value) || 0,
+                verduleria: parseFloat(document.getElementById('form-verduleria').value) || 0,
+                packaging: parseFloat(document.getElementById('form-packaging').value) || 0,
+                logistica: parseFloat(document.getElementById('form-logistica').value) || 0,
+                limpieza: parseFloat(document.getElementById('form-limpieza').value) || 0
+            };
+
+            if(indexEditar !== "") db.caja[parseInt(indexEditar)] = datosCaja;
+            else db.caja.push(datosCaja);
+
+            persistir();
+            document.getElementById('form-caja-index').value = "";
+            document.getElementById('titulo-form-caja').innerHTML = `<i class="fa-solid fa-plus text-emerald-400 mr-2"></i>Cargar Rendimiento Diario`;
+            document.getElementById('btn-submit-caja').innerText = "Guardar Caja del Día";
+            
+            renderizarTodo();
+            alert('¡Caja guardada!');
+            ['ingreso_diarias','ingreso_semanales','almacen','pollo','pescado','carne','verduleria','packaging','logistica','limpieza'].forEach(i => document.getElementById('form-'+i).value = 0);
+        }
+
+        function cargarCajaParaEditar(index) {
+            const row = db.caja[index];
+            if(!row) return;
+            document.getElementById('form-caja-index').value = index;
+            document.getElementById('form-fecha').value = row.fecha;
+            ['ingreso_diarias','ingreso_semanales','almacen','pollo','pescado','carne','verduleria','packaging','logistica','limpieza'].forEach(i => document.getElementById('form-'+i).value = row[i]);
+            document.getElementById('titulo-form-caja').innerHTML = `<i class="fa-solid fa-pen-to-square text-amber-500 mr-2"></i>Editar Registro Caja`;
+            document.getElementById('btn-submit-caja').innerText = "Actualizar Registro";
+            cambiarPestana('caja');
+        }
+
+        function eliminarDia(idx) {
+            if(confirm('¿Eliminar?')) { db.caja.splice(idx, 1); persistir(); renderizarTodo(); }
+        }
+
+        function eliminarReceta(id) {
+            if(confirm('¿Eliminar?')) { db.recetas = db.recetas.filter(r => r.id !== id); persistir(); renderizarTodo(); }
+        }
+
+        function abrirMargenReceta(id) {
+            const receta = db.recetas.find(r => r.id === id);
+            if(!receta) return;
+
+            const cTotal = calcularCostoElaboracionReceta(receta);
+            const margenObj = receta.margen_objetivo || 20;
+            const arancelRecomendado = cTotal / (1 - (margenObj / 100));
+            const gananciaPesosBase = arancelRecomendado - cTotal;
+
+            document.getElementById('modal-titulo').innerText = receta.nombre;
+            document.getElementById('modal-costo-total').innerText = `$${cTotal.toFixed(0)}`;
+            document.getElementById('modal-ganancia-base').innerText = `$${gananciaPesosBase.toFixed(0)}`;
+            document.getElementById('modal-arancel-base').innerText = `$${arancelRecomendado.toFixed(0)}`;
+            document.getElementById('modal-badge').innerText = receta.categoria === 'Carne' ? 'CON ADICIONAL CARNE' : 'ESTÁNDAR';
+            
+            const adicionalOnline = parseFloat(document.getElementById('cfg-adicional-carne')?.value) || 3000;
+            const packs = [5, 10, 15, 20, 30];
+            let htmlTabla = "";
+
+            packs.forEach(size => {
+                const precioPack = parseFloat(document.getElementById(`pack-p-${size}`)?.value) || 0;
+                let cobroUnitarioDelPack = precioPack / size;
+                if(receta.categoria === 'Carne') cobroUnitarioDelPack += adicionalOnline;
+
+                const gananciaRealPack = cobroUnitarioDelPack - cTotal;
+                const margenRealPack = (gananciaRealPack / cobroUnitarioDelPack) * 100;
+
+                htmlTabla += `
+                    <tr class="${margenRealPack < margenObj ? 'bg-rose-950/20 text-rose-300' : ''}">
+                        <td class="py-2 text-white font-medium">Pack x${size}</td>
+                        <td class="py-2 text-right">$${cobroUnitarioDelPack.toFixed(0)}</td>
+                        <td class="py-2 text-right font-bold">$${gananciaRealPack.toFixed(0)}</td>
+                        <td class="py-2 text-right font-bold ${margenRealPack >= margenObj ? 'text-emerald-400' : 'text-rose-400'}">${margenRealPack.toFixed(1)}%</td>
+                    </tr>
+                `;
+            });
+            document.getElementById('modal-tabla-cuerpo').innerHTML = htmlTabla;
+            document.getElementById('modal-margen').classList.remove('hidden');
+        }
+
+        function cerrarModal() { document.getElementById('modal-margen').classList.add('hidden'); }
+
+        function renderizarRecetas() {
+            let html = "";
+            if(db.recetas && db.recetas.length > 0) {
+                db.recetas.forEach(r => {
+                    const cTotal = calcularCostoElaboracionReceta(r);
+                    const margenObj = r.margen_objetivo || 20;
+                    const arancelFinalVenta = cTotal / (1 - (margenObj / 100));
+                    const gananciaNetaPesos = arancelFinalVenta - cTotal;
+
+                    html += `<tr class="border-b border-slate-900 hover:bg-slate-900/40 transition">
+                        <td class="p-2 text-white font-medium">${r.nombre} <span class="text-[9px] block ${r.categoria === 'Carne' ? 'text-amber-400' : 'text-slate-400'}">${r.categoria}</span></td>
+                        <td class="p-2 text-right font-mono text-slate-300">$${cTotal.toFixed(0)}</td>
+                        <td class="p-2 text-center font-mono font-bold text-cyan-400">${margenObj}%</td>
+                        <td class="p-2 text-right font-mono text-amber-400 font-semibold">$${gananciaNetaPesos.toFixed(0)}</td>
+                        <td class="p-2 text-right font-mono text-emerald-400 font-bold bg-emerald-950/10 border-x border-emerald-900/20">$${arancelFinalVenta.toFixed(0)}</td>
+                        <td class="p-2 text-center space-x-1">
+                            <button onclick="cargarParaEditar(${r.id})" class="bg-amber-600/10 text-amber-400 border border-amber-900 hover:bg-amber-600 hover:text-white font-bold px-2 py-1 rounded text-[10px] transition cursor-pointer"><i class="fa-solid fa-pen-to-square"></i> Editar</button>
+                            <button onclick="abrirMargenReceta(${r.id})" class="bg-indigo-600 hover:bg-indigo-500 text-white font-bold px-2 py-1 rounded text-[10px] transition cursor-pointer"><i class="fa-solid fa-chart-line"></i> Auditoría</button>
+                            <button onclick="eliminarReceta(${r.id})" class="text-rose-500 hover:text-rose-400 cursor-pointer text-[11px]"><i class="fa-solid fa-trash"></i></button>
+                        </td>
+                    </tr>`;
+                });
+            }
+            document.getElementById('tabla-recetas-cuerpo').innerHTML = html || '<tr><td colspan="6" class="p-2 text-center text-slate-500">No hay recetas.</td></tr>';
+        }
+
+        function renderizarTodo() {
+            recalcularEstrategiaPrecios();
+            renderizarRecetas();
+            
+            let totalIngresos = 0, totalEgresos = 0, tbodyHtml = "";
+            (db.caja || []).forEach((dia, idx) => {
+                const ing = (dia.ingreso_diarias||0) + (dia.ingreso_semanales||0);
+                const eg = (dia.almacen||0) + (dia.pollo||0) + (dia.pescado||0) + (dia.carne||0) + (dia.verduleria||0) + (dia.packaging||0) + (dia.logistica||0) + (dia.limpieza||0);
+                totalIngresos += ing; totalEgresos += eg;
+                tbodyHtml += `<tr class="border-b border-slate-900">
+                    <td class="p-3 font-mono text-slate-300 font-semibold">${dia.fecha}</td>
+                    <td class="p-3 text-emerald-400 font-bold">$${ing.toLocaleString()}</td>
+                    <td class="p-3 text-rose-400">$${eg.toLocaleString()}</td>
+                    <td class="p-3 font-bold ${ing-eg >=0?'text-emerald-500':'text-rose-500'}">$${(ing-eg).toLocaleString()}</td>
+                    <td class="p-3 text-center space-x-2">
+                        <button onclick="cargarCajaParaEditar(${idx})" class="text-amber-500 hover:text-amber-400 cursor-pointer"><i class="fa-solid fa-pen-to-square"></i></button>
+                        <button onclick="eliminarDia(${idx})" class="text-rose-500 hover:text-rose-400 cursor-pointer"><i class="fa-solid fa-trash"></i></button>
+                    </td>
+                </tr>`;
+            });
+            document.getElementById('tabla-caja-cuerpo').innerHTML = tbodyHtml;
+            document.getElementById('caja-total-ingresos').innerText = `$${totalIngresos.toLocaleString()}`;
+            document.getElementById('caja-total-egresos').innerText = `$${totalEgresos.toLocaleString()}`;
+            document.getElementById('caja-neto').innerText = `$${(totalIngresos - totalEgresos).toLocaleString()}`;
+            
+            const dias = db.caja.length || 1;
+            const neta = (totalIngresos - totalEgresos) - ((obtenerCostosFijosMensuales()/30)*dias);
+            document.getElementById('caja-ganancia-neta-real').innerText = `$${neta.toLocaleString('es-AR', {maximumFractionDigits:0})}`;
+        }
+
+        window.addEventListener('DOMContentLoaded', () => {
+            inicializarBaseDeDatos();
+            cargarCostosFijosUI();
+            renderizarListaPreciosInsumos();
+            llenarSelectorInsumosReceta();
+            actualizarCostosFijosTotales();
+            renderizarTodo();
+        });
+    </script>
+</body>
+</html>
