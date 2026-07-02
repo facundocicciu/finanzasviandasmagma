@@ -434,28 +434,24 @@
         }
 
         // REQUERIMIENTO: BOTÓN GUARDAR COSTOS FIJOS CORRECTAMENTE CONECTADO
-        function guardarCostosFijos() {
-            try {
-                db.costos_fijos.empleados = parseFloat(document.getElementById('fix-empleados').value) || 0;
-                db.costos_fijos.agua = parseFloat(document.getElementById('fix-agua').value) || 0;
-                db.costos_fijos.luz = parseFloat(document.getElementById('fix-luz').value) || 0;
-                db.costos_fijos.gas = parseFloat(document.getElementById('fix-gas').value) || 0;
-                db.costos_fijos.monotributo = parseFloat(document.getElementById('fix-monotributo').value) || 0;
-
-                persistir();
-                
-                // Forzar actualización en los textos de UI y recálculos financieros
-                const total = obtenerCostosFijosMensuales();
-                document.getElementById('txt-costo-fijo-total').innerText = `$${total.toLocaleString('es-AR')}`;
-                
-                recalcularEstrategiaPrecios();
-                renderizarTodo();
-                
-                alert('¡Costos fijos guardados y aplicados correctamente en la rentabilidad!');
-            } catch (err) {
-                alert('Error al guardar costos fijos: ' + err.message);
-            }
-        }
+      async function guardarCostosFijos() {
+    try {
+        db.costos_fijos = {
+            empleados: parseFloat(document.getElementById('fix-empleados').value) || 0,
+            agua: parseFloat(document.getElementById('fix-agua').value) || 0,
+            luz: parseFloat(document.getElementById('fix-luz').value) || 0,
+            gas: parseFloat(document.getElementById('fix-gas').value) || 0,
+            monotributo: parseFloat(document.getElementById('fix-monotributo').value) || 0
+        };
+        // Guarda en la tabla 'configuracion' de Supabase
+        await cloudPersistConfig('costos_fijos', db.costos_fijos);
+        actualizarCostosFijosTotales();
+        recalcularEstrategiaPrecios();
+        renderizarTodo();
+        alert('¡Costos fijos guardados en Supabase!');
+    } catch (err) { alert(err.message); }
+}
+        
 
         function actualizarCostosFijosTotales() {
             // Se mantiene para cambios en tiempo real ligeros pero ahora requiere dar clic en Guardar para persistir en caja
