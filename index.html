@@ -322,14 +322,12 @@
             </div>
         </div>
     </div>
-
-    <script>
-       <script>
+<script>
     // ==========================================
     // 1. CONFIGURACIÓN DE CREDENCIALES CLOUD
     // ==========================================
-    const SUPABASE_URL = "https://otdsbqlphjjpzfzvgeln.supabase.co"; // <-- Reemplazá con tu URL de Supabase
-    const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im90ZHNicWxwaGpqcHpmenZnZWxuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI5MDIzNTUsImV4cCI6MjA5ODQ3ODM1NX0.8WwUTft3pWtkkKxC6bU3NQaLkiPoKN932j-zkTviAVI";             // <-- Reemplazá con tu clave anon pública
+    const SUPABASE_URL = "https://otdsbqlphjjpzfzvgeln.supabase.co"; 
+    const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im90ZHNicWxwaGpqcHpmenZnZWxuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI5MDIzNTUsImV4cCI6MjA5ODQ3ODM1NX0.8WwUTft3pWtkkKxC6bU3NQaLkiPoKN932j-zkTviAVI"; 
 
     const sHeaders = {
         "apikey": SUPABASE_KEY,
@@ -339,10 +337,8 @@
     };
 
     let db = { caja: [], maestro_insumos: {}, maestro_unidades: {}, costos_fijos: {}, recetas: [] };
+    let insumosAsignadosTemporales = [];
 
-    // ==========================================
-    // TU LISTA DE INSUMOS MANTENIDA INTACTA
-    // ==========================================
     const listaNombresInsumos = [
         "ACEITE", "ARROZ GALLO", "ARVEJAS PAQUETE", "CALDO", "CAPELLETIS", "CASANCREM", "CHAMPIGNON", "CHEDAR", "CREMA DE LECHE", "HUEVOS", "JAMON COCIDO PIEZA", "JUGO DE LIMON", "LATA DE TOMATELAVANDINA", "LECHE", "LENTEJAS PAQUETE", "MANTECA", "MOSTACHO", "MOZARELLA", "PAN HAMBURGUESA", "PAN MILANESA FABIÁN", "PENNE RIGATTE", "PIZZA CEBOLLA ALICIA", "PIZZA TOMATE ALICIA", "QUESO CREMA", "QUESO RALLADO HORMA", "RICOTTA", "TALLARINES", "TAPA EMPANADAS TUBO", "TAPA TARTAS", "TAPAS LASAGNA", "TIRABUZÓN", "TOMATES SECOS",
         "BIFES DE COSTILLA", "BONDIOLA", "CHORIZOS", "COLITA DE CUADRIL", "COSTILLITAS DE CERDO", "CUADRIL DE CERDO", "FILET DE MERLUZA EMPANADO", "JAMÓN DE CERDO", "LOMO", "LOMO DE ATÚN", "MATAMBRE DE CARNE", "MATAMBRE DE POLLO COCIDO", "MATAMBRE DE POLLO CRUD", "MATAMBRITO DE CERDO", "MEDALLONES DE MERLUZA", "MEDALLONES DE POLLO", "MILANESA DE CARNE", "MILANESA DE CERDO", "MILANESA DE POLLO", "MUSLO CAJON", "NALGA MILANESA", "PALETA", "PALOMITA", "PATA Y MUSLO", "PECETO", "PECHITO DE CERDO", "PICADA COMUN", "POLLO ENTERO", "ROAS BEEF", "SUPREMAS", "TAPA DE NALGA", "VACIO",
@@ -350,561 +346,488 @@
         "JABON MANOS", "BANDEJA CUADRADA 105 ECO OVALADA PREMIUM X100", "BANDEJA 103 ECO CUADRADA ESTÁNDAR X100", "BANDEJA 102 ECO CUADRADA ENSALADA X100", "BROCHES 10/50", "ROLLO ALUMINIO 1KCINTA PAPEL", "BANDEJA ALUMINO PIZZA X100", "BOLSA CAMISETA 40 X 50", "BOLSA CAMISETA 45 X 60", "BANDEJA ALUMINIO CUADRADA PASTEL BF75 X100", "TAPA ALUMINIO CUADRADA PASTEL F75 X100", "CAJA CARTÓN 35X25X25", "RESMITA 75 GRS.", "POTES POSTRES 250 CC", "TAPAS POTES POSTRE", "POTES POSTRES 1/8", "CINTA ENVALAR ANCHA", "CUCHILLO descartable unidad", "tenedor descartable unidad", "SERVILLETA DE PAPEL X 80", "CAJAS 40 x 30 x 30", "CUCHARITAS SUNDAE", "BANDEJAS CARTÓN PARA TARTA DE 19 CMS. Nº12", "BANDEJA TELGOPOR 615 SANDWICH X100", "BANDEJA TELGOPOR PARA TORTILLA GRANDE X100", "FILM PVC 38 CMS PREMIUM 500 MTS", "BANDEJA BISAGRA 143 PP WORK X400(?", "BANDEJA BISAGRA 143 CON TAPA PARA LIQUIDO BANDEX CUADRADA", "BANDEJA BISAGRA 145 PP WORK X200(?", "BANDEJA BISAGRA 145 CON TAPA PARA LIQUIDO BANDEX OVALADA", "BOLSA MADERA CON MANIJA Nº8 X50"
     ];
 
-    let insumosAsignadosTemporales = [];
-
-        function inicializarBaseDeDatos() {
-            // ==========================================
-// 2. MOTOR DE SINCRONIZACIÓN ASÍNCRONA (REST)
-// ==========================================
-async function inicializarBaseDeDatos() {
-    try {
-        // A. Descargar tabla 'configuracion' (Fijos, Insumos, Unidades)
-        const resConfig = await fetch(`${SUPABASE_URL}/rest/v1/configuracion`, { method: "GET", headers: sHeaders });
-        const configs = await resConfig.json();
-        configs.forEach(c => {
-            if (c.key === 'costos_fijos') db.costos_fijos = c.data;
-            if (c.key === 'maestro_insumos') db.maestro_insumos = c.data;
-            if (c.key === 'maestro_unidades') db.maestro_unidades = c.data;
-        });
-
-        // B. Descargar Fichas Técnicas de Recetas
-        const resRecetas = await fetch(`${SUPABASE_URL}/rest/v1/recetas`, { method: "GET", headers: sHeaders });
-        db.recetas = await resRecetas.json();
-
-        // C. Descargar Cierres de la Caja Diaria ordenados cronológicamente
-        const resCaja = await fetch(`${SUPABASE_URL}/rest/v1/caja_diaria?order=fecha.desc`, { method: "GET", headers: sHeaders });
-        db.caja = await resCaja.json();
-
-        // Forzar renderizado en cascada tras la descarga de datos de la nube
-        cargarCostosFijosUI();
-        renderizarListaPreciosInsumos();
-        llenarSelectorInsumosReceta();
-        actualizarCostosFijosTotales();
-        renderizarTodo();
-    } catch (error) {
-        console.error("Error de comunicación cloud: ", error);
-    }
-}
-
-// Función que reemplaza el antiguo persistir() para configuraciones globales
-async function cloudPersistConfig(keyClave, datosData) {
-    try {
-        await fetch(`${SUPABASE_URL}/rest/v1/configuracion?key=eq.${keyClave}`, {
-            method: "PATCH",
-            headers: sHeaders,
-            body: JSON.stringify({ data: datosData })
-        });
-    } catch (e) { console.error(e); }
-}
-            
-                }
+    // ==========================================
+    // 2. SINK DE DATOS ASÍNCRONO DE SUPABASE
+    // ==========================================
+    async function inicializarBaseDeDatos() {
+        try {
+            const resConfig = await fetch(`${SUPABASE_URL}/rest/v1/configuracion`, { method: "GET", headers: sHeaders });
+            const configs = await resConfig.json();
+            configs.forEach(c => {
+                if (c.key === 'costos_fijos') db.costos_fijos = c.data;
+                if (c.key === 'maestro_insumos') db.maestro_insumos = c.data;
+                if (c.key === 'maestro_unidades') db.maestro_unidades = c.data;
             });
 
-            const semillaDefecto = {
-                caja: [{fecha: new Date().toISOString().split('T')[0], ingreso_diarias: 350000, ingreso_semanales: 820000, almacen: 80000, pollo: 65000, pescado: 30000, carne: 140000, verduleria: 45000, packaging: 22000, logistica: 55000, limpieza: 5000}],
-                maestro_insumos: maestroInsumosInicial,
-                maestro_unidades: maestroUnidadesInicial,
-                costos_fijos: { empleados: 5390000, agua: 100000, luz: 300000, gas: 65000, monotributo: 460000 }, // Estructura unificada fijos
-                recetas: [
-                    {id: 1, nombre: 'Milanesa de Suprema con Puré', categoria: 'Estandar', margen_objetivo: 20, ingredientes: [{ nombre: "SUPREMAS", cantidad: 180, unidad: "g" }, { nombre: "PAPAS", cantidad: 250, unidad: "g" }, { nombre: "BANDEJA 103 ECO CUADRADA ESTÁNDAR X100", cantidad: 1, unidad: "ud" }]},
-                    {id: 2, nombre: 'Bifes de Costilla con Vegetales', categoria: 'Carne', margen_objetivo: 25, ingredientes: [{ nombre: "BIFES DE COSTILLA", cantidad: 220, unidad: "g" }, { nombre: "MORRON ROJO", cantidad: 80, unidad: "g" }, { nombre: "BANDEJA CUADRADA 105 ECO OVALADA PREMIUM X100", cantidad: 1, unidad: "ud" }]}
-                ]
-            };
+            const resRecetas = await fetch(`${SUPABASE_URL}/rest/v1/recetas`, { method: "GET", headers: sHeaders });
+            db.recetas = await resRecetas.json();
 
-            try {
-                let datosLocales = localStorage.getItem('erp_viandas_v15_final');
-                if (datosLocales) db = JSON.parse(datosLocales);
-                else {
-                    db = semillaDefecto;
-                    localStorage.setItem('erp_viandas_v15_final', JSON.stringify(db));
-                }
-                if(!db.costos_fijos) db.costos_fijos = semillaDefecto.costos_fijos;
-            } catch (error) {
-                db = semillaDefecto;
-            }
-        }
+            const resCaja = await fetch(`${SUPABASE_URL}/rest/v1/caja_diaria?order=fecha.desc`, { method: "GET", headers: sHeaders });
+            db.caja = await resCaja.json();
 
-        function persistir() {
-            // ==========================================
-// NUEVA FUNCIÓN PERSISTIR CONECTADA A SUPABASE
-// ==========================================
-async function persistir() {
-    try {
-        // Cada vez que el sistema viejo intente "persistir", actualizamos 
-        // automáticamente el maestro de insumos y unidades en la tabla de configuración
-        await fetch(`${SUPABASE_URL}/rest/v1/configuracion?key=eq.maestro_insumos`, {
-            method: "PATCH",
-            headers: sHeaders,
-            body: JSON.stringify({ data: db.maestro_insumos })
-        });
-        
-        await fetch(`${SUPABASE_URL}/rest/v1/configuracion?key=eq.maestro_unidades`, {
-            method: "PATCH",
-            headers: sHeaders,
-            body: JSON.stringify({ data: db.maestro_unidades })
-        });
-    } catch (error) {
-        console.error("Error al persistir en Supabase:", error);
-    }
-}
-        }
-
-        // CARGAR VALORES FIJOS EN INPUTS
-        function cargarCostosFijosUI() {
-            if(!db.costos_fijos) db.costos_fijos = { empleados: 5390000, agua: 100000, luz: 300000, gas: 65000, monotributo: 460000 };
-            document.getElementById('fix-empleados').value = db.costos_fijos.empleados;
-            document.getElementById('fix-agua').value = db.costos_fijos.agua;
-            document.getElementById('fix-luz').value = db.costos_fijos.luz;
-            document.getElementById('fix-gas').value = db.costos_fijos.gas;
-            document.getElementById('fix-monotributo').value = db.costos_fijos.monotributo;
-        }
-
-        function obtenerCostosFijosMensuales() {
-            if(!db.costos_fijos) return 5915000;
-            return (db.costos_fijos.empleados || 0) + (db.costos_fijos.agua || 0) + (db.costos_fijos.luz || 0) + (db.costos_fijos.gas || 0) + (db.costos_fijos.monotributo || 0);
-        }
-
-        // REQUERIMIENTO: BOTÓN GUARDAR COSTOS FIJOS CORRECTAMENTE CONECTADO
-      async function guardarCostosFijos() {
-    try {
-        db.costos_fijos = {
-            empleados: parseFloat(document.getElementById('fix-empleados').value) || 0,
-            agua: parseFloat(document.getElementById('fix-agua').value) || 0,
-            luz: parseFloat(document.getElementById('fix-luz').value) || 0,
-            gas: parseFloat(document.getElementById('fix-gas').value) || 0,
-            monotributo: parseFloat(document.getElementById('fix-monotributo').value) || 0
-        };
-        // Guarda en la tabla 'configuracion' de Supabase
-        await cloudPersistConfig('costos_fijos', db.costos_fijos);
-        actualizarCostosFijosTotales();
-        recalcularEstrategiaPrecios();
-        renderizarTodo();
-        alert('¡Costos fijos guardados en Supabase!');
-    } catch (err) { alert(err.message); }
-}
-        
-
-        function actualizarCostosFijosTotales() {
-            // Se mantiene para cambios en tiempo real ligeros pero ahora requiere dar clic en Guardar para persistir en caja
-            const total = obtenerCostosFijosMensuales();
-            document.getElementById('txt-costo-fijo-total').innerText = `$${total.toLocaleString('es-AR')}`;
-        }
-
-        function renderizarListaPreciosInsumos() {
-            const contenedor = document.getElementById('contenedor-maestro-insumos');
-            if(!contenedor) return;
-
-            let html = "";
-            listaNombresInsumos.forEach(nombre => {
-                const precioActual = db.maestro_insumos[nombre] || 0;
-                const unidadActual = db.maestro_unidades[nombre] || "kg";
-                
-                html += `
-                    <div class="item-insumo-maestro flex justify-between items-center bg-slate-900 p-2 rounded-lg border border-slate-800" data-nombre="${nombre}">
-                        <span class="text-[11px] text-slate-300 break-words w-1/2">${nombre}</span>
-                        <div class="flex items-center gap-1 justify-end w-1/2">
-                            <select onchange="actualizarUnidadInsumoDirecto('${nombre}', this.value)" class="bg-slate-950 border border-slate-700 rounded p-0.5 text-[10px] text-cyan-400 font-bold focus:outline-none">
-                                <option value="kg" ${unidadActual === 'kg' ? 'selected' : ''}>x Kg</option>
-                                <option value="L" ${unidadActual === 'L' ? 'selected' : ''}>x Litro</option>
-                                <option value="ud" ${unidadActual === 'ud' ? 'selected' : ''}>x Ud</option>
-                            </select>
-                            <input type="number" value="${precioActual}" oninput="actualizarPrecioInsumoDirecto('${nombre}', this.value)" class="w-14 bg-slate-950 border border-slate-700 rounded p-0.5 text-right text-xs text-white font-bold font-mono">
-                        </div>
-                    </div>
-                `;
-            });
-            contenedor.innerHTML = html;
-        }
-
-       async function actualizarPrecioInsumoDirecto(nombre, valor) {
-    db.maestro_insumos[nombre] = parseFloat(valor) || 0;
-    // Sincroniza el cambio de precio del insumo en la nube de inmediato
-    await cloudPersistConfig('maestro_insumos', db.maestro_insumos);
-    recalcularEstrategiaPrecios();
-    renderizarRecetas();
-    renderizarTodo();
-}
-        
-
-        function actualizarUnidadInsumoDirecto(nombre, unidad) {
-            db.maestro_unidades[nombre] = unidad;
-            persistir();
-            adaptarUnidadesEnSelector();
-            recalcularEstrategiaPrecios();
-            renderizarRecetas();
-            renderizarTodo();
-        }
-
-        function filtrarListaInsumos() {
-            const query = document.getElementById('buscar-insumo').value.toUpperCase();
-            const items = document.getElementsByClassName('item-insumo-maestro');
-            Array.from(items).forEach(item => {
-                const nombre = item.getAttribute('data-nombre') || "";
-                item.classList.toggle('hidden', !nombre.includes(query));
-            });
-        }
-
-        function llenarSelectorInsumosReceta() {
-            const selector = document.getElementById('selector-insumos-receta');
-            if(!selector) return;
-            selector.innerHTML = listaNombresInsumos.map(n => `<option value="${n}">${n}</option>`).join("");
-            adaptarUnidadesEnSelector();
-        }
-
-        function adaptarUnidadesEnSelector() {
-            const selectInsumo = document.getElementById('selector-insumos-receta');
-            const selectUnidad = document.getElementById('unidad-insumo-receta');
-            if(!selectInsumo || !selectUnidad) return;
-
-            const insumoSeleccionado = selectInsumo.value;
-            const unidadBaseCompra = db.maestro_unidades[insumoSeleccionado] || "kg";
-
-            if(unidadBaseCompra === "kg") {
-                selectUnidad.innerHTML = `<option value="g">Gramos (g)</option><option value="kg">Kilogramos (kg)</option>`;
-            } else if(unidadBaseCompra === "L") {
-                selectUnidad.innerHTML = `<option value="ml">Mililitros (ml)</option><option value="L">Litros (L)</option>`;
-            } else {
-                selectUnidad.innerHTML = `<option value="ud">Unidades (ud)</option>`;
-            }
-        }
-
-        function adaptarUnidadFormularioReceta() { adaptarUnidadesEnSelector(); }
-
-        function agregarInsumoALaListaTemporal() {
-            const selectInsumo = document.getElementById('selector-insumos-receta');
-            const qtyInput = document.getElementById('cantidad-insumo-receta');
-            const selectUnidad = document.getElementById('unidad-insumo-receta');
-
-            if(!qtyInput || parseFloat(qtyInput.value) <= 0 || isNaN(parseFloat(qtyInput.value))) return alert('Por favor, ingresá una cantidad válida.');
-
-            insumosAsignadosTemporales.push({
-                nombre: selectInsumo.value,
-                cantidad: parseFloat(qtyInput.value),
-                unidad: selectUnidad.value
-            });
-
-            renderizarInsumosTemporalesHTML();
-            qtyInput.value = "";
-        }
-
-        function quitarInsumoTemporal(idx) {
-            insumosAsignadosTemporales.splice(idx, 1);
-            renderizarInsumosTemporalesHTML();
-        }
-
-        function renderizarInsumosTemporalesHTML() {
-            document.getElementById('lista-insumos-temporales-receta').innerHTML = insumosAsignadosTemporales.map((ins, index) => `
-                <span class="inline-flex items-center gap-1 bg-slate-800 border border-slate-700 rounded-full px-2.5 py-1 text-[11px] text-slate-200">
-                    <strong>${ins.nombre}</strong>: ${ins.cantidad}${ins.unidad}
-                    <button onclick="quitarInsumoTemporal(${index})" class="text-rose-400 hover:text-rose-300 ml-1 font-bold cursor-pointer">×</button>
-                </span>
-            `).join("");
-        }
-
-       async function guardarRecetaCompleta() {
-    const nombreInput = document.getElementById('rec-nombre');
-    if(!nombreInput || !nombreInput.value.trim()) return alert('Ingresá el nombre de la vianda.');
-    if(insumosAsignadosTemporales.length === 0) return alert('Añadí al menos un ingrediente.');
-
-    const idEditar = document.getElementById('rec-id-editar').value;
-    const datos = {
-        nombre: nombreInput.value.trim(),
-        categoria: document.getElementById('rec-categoria').value,
-        margen_objetivo: parseFloat(document.getElementById('rec-margen-objetivo').value) || 20,
-        ingredientes: [...insumosAsignadosTemporales]
-    };
-
-    if(idEditar) {
-        // Si estás editando, hace un PATCH en la tabla 'recetas' de Supabase
-        await fetch(`${SUPABASE_URL}/rest/v1/recetas?id=eq.${idEditar}`, { method: "PATCH", headers: sHeaders, body: JSON.stringify(datos) });
-        document.getElementById('rec-id-editar').value = "";
-        document.getElementById('btn-guardar-receta').innerHTML = `Guardar Ficha Completa de la Vianda`;
-    } else {
-        // Si es nueva receta, hace un POST
-        await fetch(`${SUPABASE_URL}/rest/v1/recetas`, { method: "POST", headers: sHeaders, body: JSON.stringify(datos) });
-    }
-
-    insumosAsignadosTemporales = [];
-    nombreInput.value = "";
-    document.getElementById('rec-margen-objetivo').value = 20;
-    renderizarInsumosTemporalesHTML();
-    await inicializarBaseDeDatos(); // Recarga la app trayendo los datos frescos de la nube
-    alert('¡Receta guardada en la nube!');
-}
-        ;
-
-            if(idEditar) {
-                const idx = db.recetas.findIndex(r => r.id == idEditar);
-                if(idx !== -1) db.recetas[idx] = { id: parseInt(idEditar), ...datos };
-                document.getElementById('rec-id-editar').value = "";
-                document.getElementById('btn-guardar-receta').innerHTML = `<i class="fa-solid fa-floppy-disk mr-1"></i> Guardar Ficha Completa de la Vianda`;
-                document.getElementById('btn-guardar-receta').className = "bg-cyan-600 hover:bg-cyan-500 font-bold py-2 px-6 rounded-xl text-xs text-white cursor-pointer";
-            } else {
-                db.recetas.push({ id: Date.now(), ...datos });
-            }
-
-            persistir();
-            insumosAsignadosTemporales = [];
-            renderizarInsumosTemporalesHTML();
-            recalcularEstrategiaPrecios();
-            renderizarTodo();
-
-            nombreInput.value = "";
-            document.getElementById('rec-margen-objetivo').value = 20;
-            alert('¡Receta guardada con éxito!');
-        }
-
-        function cargarParaEditar(id) {
-            const r = db.recetas.find(item => item.id === id);
-            if(!r) return;
-
-            document.getElementById('rec-id-editar').value = r.id;
-            document.getElementById('rec-nombre').value = r.nombre;
-            document.getElementById('rec-categoria').value = r.categoria;
-            document.getElementById('rec-margen-objetivo').value = r.margen_objetivo;
-
-            insumosAsignadosTemporales = [...(r.ingredientes || [])];
-            renderizarInsumosTemporalesHTML();
-
-            document.getElementById('btn-guardar-receta').innerHTML = `<i class="fa-solid fa-circle-check mr-1"></i> Actualizar Ficha de la Vianda`;
-            document.getElementById('btn-guardar-receta').className = "bg-amber-600 hover:bg-amber-500 font-bold py-2 px-6 rounded-xl text-xs text-white cursor-pointer";
-            document.getElementById('rec-nombre').focus();
-        }
-
-        function calcularCostoElaboracionReceta(r) {
-            let total = 0;
-            if(!r.ingredientes) return 0;
-            r.ingredientes.forEach(ins => {
-                const precioMaestro = db.maestro_insumos[ins.nombre] || 0;
-                if(ins.unidad === "g" || ins.unidad === "ml") total += (ins.cantidad / 1000) * precioMaestro;
-                else total += ins.cantidad * precioMaestro;
-            });
-            return total;
-        }
-
-        function recalcularEstrategiaPrecios() {
-            try {
-                if(!db.recetas || db.recetas.length === 0) return;
-
-                let sumaArancelesFinales = 0, sumaCostosVariablesTotales = 0;
-
-                db.recetas.forEach(r => {
-                    const costElaboracion = calcularCostoElaboracionReceta(r);
-                    const margen = r.margen_objetivo || 20;
-                    const arancelSugeridoPlato = costElaboracion / (1 - (margen / 100));
-                    sumaArancelesFinales += arancelSugeridoPlato;
-                    sumaCostosVariablesTotales += costElaboracion;
-                });
-
-                const arancelPromedioColectivo = sumaArancelesFinales / db.recetas.length;
-                const costoVariablePromedioUnidad = sumaCostosVariablesTotales / db.recetas.length;
-
-                document.getElementById('txt-arancel-promedio-colectivo').innerText = `$${arancelPromedioColectivo.toFixed(0)}`;
-
-                const costoFijoMensual = obtenerCostosFijosMensuales();
-                const packs = [5, 10, 15, 20, 30];
-
-                packs.forEach(size => {
-                    const packInput = document.getElementById(`pack-p-${size}`);
-                    const precioPackActual = packInput ? (parseFloat(packInput.value) || 0) : 0;
-                    
-                    const sugeridoPackTotal = arancelPromedioColectivo * size;
-                    document.getElementById(`sug-p-${size}`).innerText = `$${sugeridoPackTotal.toFixed(0)}`;
-
-                    const costoVariablePackTotal = costoVariablePromedioUnidad * size;
-                    const margenContribucionPack = precioPackActual - costoVariablePackTotal;
-
-                    const peElem = document.getElementById(`pe-${size}`);
-                    const rowElem = document.getElementById(`row-pack-${size}`);
-                    
-                    if (peElem && rowElem) {
-                        if(margenContribucionPack > 0) {
-                            peElem.innerText = Math.ceil(costoFijoMensual / margenContribucionPack).toLocaleString() + " packs/mes";
-                            rowElem.className = "divide-y divide-slate-900 font-mono";
-                        } else {
-                            peElem.innerText = "¡PÉRDIDA!";
-                            rowElem.className = "bg-rose-950/20 divide-y divide-slate-900 font-mono text-rose-400";
-                        }
-                    }
-                });
-            } catch (e) { console.error(e); }
-        }
-
-        async function guardarDia() {
-    const fecha = document.getElementById('form-fecha').value;
-    if(!fecha) return alert('Selecciona una fecha');
-    
-    const indexEditar = document.getElementById('form-caja-index').value;
-    const datosCaja = {
-        fecha,
-        ingreso_diarias: parseFloat(document.getElementById('form-ingreso_diarias').value) || 0,
-        ingreso_semanales: parseFloat(document.getElementById('form-ingreso_semanales').value) || 0,
-        almacen: parseFloat(document.getElementById('form-almacen').value) || 0,
-        pollo: parseFloat(document.getElementById('form-pollo').value) || 0,
-        pescado: parseFloat(document.getElementById('form-pescado').value) || 0,
-        carne: parseFloat(document.getElementById('form-carne').value) || 0,
-        verduleria: parseFloat(document.getElementById('form-verduleria').value) || 0,
-        packaging: parseFloat(document.getElementById('form-packaging').value) || 0,
-        logistica: parseFloat(document.getElementById('form-logistica').value) || 0,
-        limpieza: parseFloat(document.getElementById('form-limpieza').value) || 0
-    };
-
-    if(indexEditar !== "") {
-        // Si estás corrigiendo un día viejo, busca su ID real y lo actualiza en la tabla 'caja_diaria'
-        const registroReal = db.caja[parseInt(indexEditar)];
-        await fetch(`${SUPABASE_URL}/rest/v1/caja_diaria?id=eq.${registroReal.id}`, { method: "PATCH", headers: sHeaders, body: JSON.stringify(datosCaja) });
-        document.getElementById('form-caja-index').value = "";
-        document.getElementById('titulo-form-caja').innerHTML = `Cargar Rendimiento Diario`;
-        document.getElementById('btn-submit-caja').innerText = "Guardar Caja del Día";
-    } else {
-        // Si es un día nuevo, hace un POST
-        await fetch(`${SUPABASE_URL}/rest/v1/caja_diaria`, { method: "POST", headers: sHeaders, body: JSON.stringify(datosCaja) });
-    }
-
-    ['ingreso_diarias','ingreso_semanales','almacen','pollo','pescado','carne','verduleria','packaging','logistica','limpieza'].forEach(i => document.getElementById('form-'+i).value = 0);
-    await inicializarBaseDeDatos(); // Recarga y actualiza las métricas en tiempo real
-    alert('¡Caja sincronizada!');
-}
-        ;
-
-            if(indexEditar !== "") db.caja[parseInt(indexEditar)] = datosCaja;
-            else db.caja.push(datosCaja);
-
-            persistir();
-            document.getElementById('form-caja-index').value = "";
-            document.getElementById('titulo-form-caja').innerHTML = `<i class="fa-solid fa-plus text-emerald-400 mr-2"></i>Cargar Rendimiento Diario`;
-            document.getElementById('btn-submit-caja').innerText = "Guardar Caja del Día";
-            
-            renderizarTodo();
-            alert('¡Caja guardada!');
-            ['ingreso_diarias','ingreso_semanales','almacen','pollo','pescado','carne','verduleria','packaging','logistica','limpieza'].forEach(i => document.getElementById('form-'+i).value = 0);
-        }
-
-        function cargarCajaParaEditar(index) {
-            const row = db.caja[index];
-            if(!row) return;
-            document.getElementById('form-caja-index').value = index;
-            document.getElementById('form-fecha').value = row.fecha;
-            ['ingreso_diarias','ingreso_semanales','almacen','pollo','pescado','carne','verduleria','packaging','logistica','limpieza'].forEach(i => document.getElementById('form-'+i).value = row[i]);
-            document.getElementById('titulo-form-caja').innerHTML = `<i class="fa-solid fa-pen-to-square text-amber-500 mr-2"></i>Editar Registro Caja`;
-            document.getElementById('btn-submit-caja').innerText = "Actualizar Registro";
-            cambiarPestana('caja');
-        }
-
-        function eliminarDia(idx) {
-            if(confirm('¿Eliminar?')) { db.caja.splice(idx, 1); persistir(); renderizarTodo(); }
-        }
-
-        function eliminarReceta(id) {
-            if(confirm('¿Eliminar?')) { db.recetas = db.recetas.filter(r => r.id !== id); persistir(); renderizarTodo(); }
-        }
-
-        function abrirMargenReceta(id) {
-            const receta = db.recetas.find(r => r.id === id);
-            if(!receta) return;
-
-            const cTotal = calcularCostoElaboracionReceta(receta);
-            const margenObj = receta.margen_objetivo || 20;
-            const arancelRecomendado = cTotal / (1 - (margenObj / 100));
-            const gananciaPesosBase = arancelRecomendado - cTotal;
-
-            document.getElementById('modal-titulo').innerText = receta.nombre;
-            document.getElementById('modal-costo-total').innerText = `$${cTotal.toFixed(0)}`;
-            document.getElementById('modal-ganancia-base').innerText = `$${gananciaPesosBase.toFixed(0)}`;
-            document.getElementById('modal-arancel-base').innerText = `$${arancelRecomendado.toFixed(0)}`;
-            document.getElementById('modal-badge').innerText = receta.categoria === 'Carne' ? 'CON ADICIONAL CARNE' : 'ESTÁNDAR';
-            
-            const adicionalOnline = parseFloat(document.getElementById('cfg-adicional-carne')?.value) || 3000;
-            const packs = [5, 10, 15, 20, 30];
-            let htmlTabla = "";
-
-            packs.forEach(size => {
-                const precioPack = parseFloat(document.getElementById(`pack-p-${size}`)?.value) || 0;
-                let cobroUnitarioDelPack = precioPack / size;
-                if(receta.categoria === 'Carne') cobroUnitarioDelPack += adicionalOnline;
-
-                const gananciaRealPack = cobroUnitarioDelPack - cTotal;
-                const margenRealPack = (gananciaRealPack / cobroUnitarioDelPack) * 100;
-
-                htmlTabla += `
-                    <tr class="${margenRealPack < margenObj ? 'bg-rose-950/20 text-rose-300' : ''}">
-                        <td class="py-2 text-white font-medium">Pack x${size}</td>
-                        <td class="py-2 text-right">$${cobroUnitarioDelPack.toFixed(0)}</td>
-                        <td class="py-2 text-right font-bold">$${gananciaRealPack.toFixed(0)}</td>
-                        <td class="py-2 text-right font-bold ${margenRealPack >= margenObj ? 'text-emerald-400' : 'text-rose-400'}">${margenRealPack.toFixed(1)}%</td>
-                    </tr>
-                `;
-            });
-            document.getElementById('modal-tabla-cuerpo').innerHTML = htmlTabla;
-            document.getElementById('modal-margen').classList.remove('hidden');
-        }
-
-        function cerrarModal() { document.getElementById('modal-margen').classList.add('hidden'); }
-
-        function renderizarRecetas() {
-            let html = "";
-            if(db.recetas && db.recetas.length > 0) {
-                db.recetas.forEach(r => {
-                    const cTotal = calcularCostoElaboracionReceta(r);
-                    const margenObj = r.margen_objetivo || 20;
-                    const arancelFinalVenta = cTotal / (1 - (margenObj / 100));
-                    const gananciaNetaPesos = arancelFinalVenta - cTotal;
-
-                    html += `<tr class="border-b border-slate-900 hover:bg-slate-900/40 transition">
-                        <td class="p-2 text-white font-medium">${r.nombre} <span class="text-[9px] block ${r.categoria === 'Carne' ? 'text-amber-400' : 'text-slate-400'}">${r.categoria}</span></td>
-                        <td class="p-2 text-right font-mono text-slate-300">$${cTotal.toFixed(0)}</td>
-                        <td class="p-2 text-center font-mono font-bold text-cyan-400">${margenObj}%</td>
-                        <td class="p-2 text-right font-mono text-amber-400 font-semibold">$${gananciaNetaPesos.toFixed(0)}</td>
-                        <td class="p-2 text-right font-mono text-emerald-400 font-bold bg-emerald-950/10 border-x border-emerald-900/20">$${arancelFinalVenta.toFixed(0)}</td>
-                        <td class="p-2 text-center space-x-1">
-                            <button onclick="cargarParaEditar(${r.id})" class="bg-amber-600/10 text-amber-400 border border-amber-900 hover:bg-amber-600 hover:text-white font-bold px-2 py-1 rounded text-[10px] transition cursor-pointer"><i class="fa-solid fa-pen-to-square"></i> Editar</button>
-                            <button onclick="abrirMargenReceta(${r.id})" class="bg-indigo-600 hover:bg-indigo-500 text-white font-bold px-2 py-1 rounded text-[10px] transition cursor-pointer"><i class="fa-solid fa-chart-line"></i> Auditoría</button>
-                            <button onclick="eliminarReceta(${r.id})" class="text-rose-500 hover:text-rose-400 cursor-pointer text-[11px]"><i class="fa-solid fa-trash"></i></button>
-                        </td>
-                    </tr>`;
-                });
-            }
-            document.getElementById('tabla-recetas-cuerpo').innerHTML = html || '<tr><td colspan="6" class="p-2 text-center text-slate-500">No hay recetas.</td></tr>';
-        }
-
-        function renderizarTodo() {
-            recalcularEstrategiaPrecios();
-            renderizarRecetas();
-            
-            let totalIngresos = 0, totalEgresos = 0, tbodyHtml = "";
-            (db.caja || []).forEach((dia, idx) => {
-                const ing = (dia.ingreso_diarias||0) + (dia.ingreso_semanales||0);
-                const eg = (dia.almacen||0) + (dia.pollo||0) + (dia.pescado||0) + (dia.carne||0) + (dia.verduleria||0) + (dia.packaging||0) + (dia.logistica||0) + (dia.limpieza||0);
-                totalIngresos += ing; totalEgresos += eg;
-                tbodyHtml += `<tr class="border-b border-slate-900">
-                    <td class="p-3 font-mono text-slate-300 font-semibold">${dia.fecha}</td>
-                    <td class="p-3 text-emerald-400 font-bold">$${ing.toLocaleString()}</td>
-                    <td class="p-3 text-rose-400">$${eg.toLocaleString()}</td>
-                    <td class="p-3 font-bold ${ing-eg >=0?'text-emerald-500':'text-rose-500'}">$${(ing-eg).toLocaleString()}</td>
-                    <td class="p-3 text-center space-x-2">
-                        <button onclick="cargarCajaParaEditar(${idx})" class="text-amber-500 hover:text-amber-400 cursor-pointer"><i class="fa-solid fa-pen-to-square"></i></button>
-                        <button onclick="eliminarDia(${idx})" class="text-rose-500 hover:text-rose-400 cursor-pointer"><i class="fa-solid fa-trash"></i></button>
-                    </td>
-                </tr>`;
-            });
-            document.getElementById('tabla-caja-cuerpo').innerHTML = tbodyHtml;
-            document.getElementById('caja-total-ingresos').innerText = `$${totalIngresos.toLocaleString()}`;
-            document.getElementById('caja-total-egresos').innerText = `$${totalEgresos.toLocaleString()}`;
-            document.getElementById('caja-neto').innerText = `$${(totalIngresos - totalEgresos).toLocaleString()}`;
-            
-            const dias = db.caja.length || 1;
-            const neta = (totalIngresos - totalEgresos) - ((obtenerCostosFijosMensuales()/30)*dias);
-            document.getElementById('caja-ganancia-neta-real').innerText = `$${neta.toLocaleString('es-AR', {maximumFractionDigits:0})}`;
-        }
-
-        window.addEventListener('DOMContentLoaded', () => {
-            inicializarBaseDeDatos();
             cargarCostosFijosUI();
             renderizarListaPreciosInsumos();
             llenarSelectorInsumosReceta();
             actualizarCostosFijosTotales();
             renderizarTodo();
+        } catch (error) {
+            console.error("Error de comunicación cloud: ", error);
+        }
+    }
+
+    async function cloudPersistConfig(keyClave, datosData) {
+        try {
+            await fetch(`${SUPABASE_URL}/rest/v1/configuracion?key=eq.${keyClave}`, {
+                method: "PATCH",
+                headers: sHeaders,
+                body: JSON.stringify({ data: datosData })
+            });
+        } catch (e) { console.error(e); }
+    }
+
+    async function persistir() {
+        try {
+            await fetch(`${SUPABASE_URL}/rest/v1/configuracion?key=eq.maestro_insumos`, {
+                method: "PATCH",
+                headers: sHeaders,
+                body: JSON.stringify({ data: db.maestro_insumos })
+            });
+            await fetch(`${SUPABASE_URL}/rest/v1/configuracion?key=eq.maestro_unidades`, {
+                method: "PATCH",
+                headers: sHeaders,
+                body: JSON.stringify({ data: db.maestro_unidades })
+            });
+        } catch (error) { console.error(error); }
+    }
+
+    function forzarReseteoCompleto() {
+        if(confirm('¿Reiniciar base de datos local?')) {
+            localStorage.removeItem('erp_viandas_v15_final');
+            location.reload();
+        }
+    }
+
+    // ==========================================
+    // 3. CONTROL DE NAVEGACIÓN CORREGIDO (FIJADO)
+    // ==========================================
+    async function cambiarPestana(pestana) {
+        document.getElementById('pestana-caja').classList.toggle('hidden', pestana !== 'caja');
+        document.getElementById('pestana-recetas').classList.toggle('hidden', pestana !== 'recetas');
+        
+        document.getElementById('btn-tab-caja').className = pestana === 'caja' ? 
+            "w-full flex items-center gap-3 bg-emerald-500/10 text-emerald-400 px-4 py-3 rounded-xl font-medium text-left transition cursor-pointer" : 
+            "w-full flex items-center gap-3 text-slate-400 hover:bg-slate-900 px-4 py-3 rounded-xl font-medium text-left transition cursor-pointer";
+            
+        document.getElementById('btn-tab-recetas').className = pestana === 'recetas' ? 
+            "w-full flex items-center gap-3 bg-cyan-500/10 text-cyan-400 px-4 py-3 rounded-xl font-medium text-left transition cursor-pointer" : 
+            "w-full flex items-center gap-3 text-slate-400 hover:bg-slate-900 px-4 py-3 rounded-xl font-medium text-left transition cursor-pointer";
+
+        if (pestana === 'recetas') {
+            renderizarListaPreciosInsumos();
+            llenarSelectorInsumosReceta();
+            actualizarCostosFijosTotales();
+            recalcularEstrategiaPrecios();
+        }
+    }
+
+    function resetearFechasFiltro() {
+        document.getElementById('filtro-desde').value = '';
+        document.getElementById('filtro-hasta').value = '';
+        renderizarTodo();
+    }
+
+    function cargarCostosFijosUI() {
+        if(!db.costos_fijos) db.costos_fijos = { empleados: 5390000, agua: 100000, luz: 300000, gas: 65000, monotributo: 460000 };
+        document.getElementById('fix-empleados').value = db.costos_fijos.empleados;
+        document.getElementById('fix-agua').value = db.costos_fijos.agua;
+        document.getElementById('fix-luz').value = db.costos_fijos.luz;
+        document.getElementById('fix-gas').value = db.costos_fijos.gas;
+        document.getElementById('fix-monotributo').value = db.costos_fijos.monotributo;
+    }
+
+    function obtenerCostosFijosMensuales() {
+        if(!db.costos_fijos) return 5915000;
+        return (db.costos_fijos.empleados || 0) + (db.costos_fijos.agua || 0) + (db.costos_fijos.luz || 0) + (db.costos_fijos.gas || 0) + (db.costos_fijos.monotributo || 0);
+    }
+
+    async function guardarCostosFijos() {
+        try {
+            db.costos_fijos = {
+                empleados: parseFloat(document.getElementById('fix-empleados').value) || 0,
+                agua: parseFloat(document.getElementById('fix-agua').value) || 0,
+                luz: parseFloat(document.getElementById('fix-luz').value) || 0,
+                gas: parseFloat(document.getElementById('fix-gas').value) || 0,
+                monotributo: parseFloat(document.getElementById('fix-monotributo').value) || 0
+            };
+            await cloudPersistConfig('costos_fijos', db.costos_fijos);
+            actualizarCostosFijosTotales();
+            recalcularEstrategiaPrecios();
+            renderizarTodo();
+            alert('¡Costos fijos guardados en Supabase!');
+        } catch (err) { alert(err.message); }
+    }
+
+    function actualizarCostosFijosTotales() {
+        const total = obtenerCostosFijosMensuales();
+        document.getElementById('txt-costo-fijo-total').innerText = `$${total.toLocaleString('es-AR')}`;
+    }
+
+    // ==========================================
+    // 4. LOGICA MAESTRO DE INSUMOS E INGENIERÍA
+    // ==========================================
+    function renderizarListaPreciosInsumos() {
+        const contenedor = document.getElementById('contenedor-maestro-insumos');
+        if(!contenedor) return;
+
+        let html = "";
+        listaNombresInsumos.forEach(nombre => {
+            const precioActual = db.maestro_insumos[nombre] || 0;
+            const unidadActual = db.maestro_unidades[nombre] || "kg";
+            
+            html += `
+                <div class="item-insumo-maestro flex justify-between items-center bg-slate-900 p-2 rounded-lg border border-slate-800" data-nombre="${nombre}">
+                    <span class="text-[11px] text-slate-300 break-words w-1/2">${nombre}</span>
+                    <div class="flex items-center gap-1 justify-end w-1/2">
+                        <select onchange="actualizarUnidadInsumoDirecto('${nombre}', this.value)" class="bg-slate-950 border border-slate-700 rounded p-0.5 text-[10px] text-cyan-400 font-bold focus:outline-none">
+                            <option value="kg" ${unidadActual === 'kg' ? 'selected' : ''}>x Kg</option>
+                            <option value="L" ${unidadActual === 'L' ? 'selected' : ''}>x Litro</option>
+                            <option value="ud" ${unidadActual === 'ud' ? 'selected' : ''}>x Ud</option>
+                        </select>
+                        <input type="number" value="${precioActual}" oninput="actualizarPrecioInsumoDirecto('${nombre}', this.value)" class="w-14 bg-slate-950 border border-slate-700 rounded p-0.5 text-right text-xs text-white font-bold font-mono">
+                    </div>
+                </div>`;
         });
+        contenedor.innerHTML = html;
+    }
+
+    async function actualizarPrecioInsumoDirecto(nombre, valor) {
+        db.maestro_insumos[nombre] = parseFloat(valor) || 0;
+        await cloudPersistConfig('maestro_insumos', db.maestro_insumos);
+        recalcularEstrategiaPrecios();
+        renderizarRecetas();
+        renderizarTodo();
+    }
+
+    async function actualizarUnidadInsumoDirecto(nombre, unidad) {
+        db.maestro_unidades[nombre] = unidad;
+        await cloudPersistConfig('maestro_unidades', db.maestro_unidades);
+        adaptarUnidadesEnSelector();
+        recalcularEstrategiaPrecios();
+        renderizarRecetas();
+        renderizarTodo();
+    }
+
+    function filtrarListaInsumos() {
+        const query = document.getElementById('buscar-insumo').value.toUpperCase();
+        const items = document.getElementsByClassName('item-insumo-maestro');
+        Array.from(items).forEach(item => {
+            const nombre = item.getAttribute('data-nombre') || "";
+            item.classList.toggle('hidden', !nombre.includes(query));
+        });
+    }
+
+    function llenarSelectorInsumosReceta() {
+        const selector = document.getElementById('selector-insumos-receta');
+        if(!selector) return;
+        selector.innerHTML = listaNombresInsumos.map(n => `<option value="${n}">${n}</option>`).join("");
+        adaptarUnidadesEnSelector();
+    }
+
+    function adaptarUnidadesEnSelector() {
+        const selectInsumo = document.getElementById('selector-insumos-receta');
+        const selectUnidad = document.getElementById('unidad-insumo-receta');
+        if(!selectInsumo || !selectUnidad) return;
+
+        const insumoSeleccionado = selectInsumo.value;
+        const unidadBaseCompra = db.maestro_unidades[insumoSeleccionado] || "kg";
+
+        if(unidadBaseCompra === "kg") {
+            selectUnidad.innerHTML = `<option value="g">Gramos (g)</option><option value="kg">Kilogramos (kg)</option>`;
+        } else if(unidadBaseCompra === "L") {
+            selectUnidad.innerHTML = `<option value="ml">Mililitros (ml)</option><option value="L">Litros (L)</option>`;
+        } else {
+            selectUnidad.innerHTML = `<option value="ud">Unidades (ud)</option>`;
+        }
+    }
+
+    function adaptarUnidadFormularioReceta() { adaptarUnidadesEnSelector(); }
+
+    function agregarInsumoALaListaTemporal() {
+        const selectInsumo = document.getElementById('selector-insumos-receta');
+        const qtyInput = document.getElementById('cantidad-insumo-receta');
+        const selectUnidad = document.getElementById('unidad-insumo-receta');
+
+        if(!qtyInput || parseFloat(qtyInput.value) <= 0 || isNaN(parseFloat(qtyInput.value))) return alert('Por favor, ingresá una cantidad válida.');
+
+        insumosAsignadosTemporales.push({
+            nombre: selectInsumo.value,
+            cantidad: parseFloat(qtyInput.value),
+            unidad: selectUnidad.value
+        });
+
+        renderizarInsumosTemporalesHTML();
+        qtyInput.value = "";
+    }
+
+    function quitarInsumoTemporal(idx) {
+        insumosAsignadosTemporales.splice(idx, 1);
+        renderizarInsumosTemporalesHTML();
+    }
+
+    function renderizarInsumosTemporalesHTML() {
+        document.getElementById('lista-insumos-temporales-receta').innerHTML = insumosAsignadosTemporales.map((ins, index) => `
+            <span class="inline-flex items-center gap-1 bg-slate-800 border border-slate-700 rounded-full px-2.5 py-1 text-[11px] text-slate-200">
+                <strong>${ins.nombre}</strong>: ${ins.cantidad}${ins.unidad}
+                <button onclick="quitarInsumoTemporal(${index})" class="text-rose-400 font-bold ml-1 cursor-pointer">×</button>
+            </span>`).join("");
+    }
+
+    async function guardarRecetaCompleta() {
+        const nombreInput = document.getElementById('rec-nombre');
+        if(!nombreInput || !nombreInput.value.trim()) return alert('Ingresá el nombre de la vianda.');
+        if(insumosAsignadosTemporales.length === 0) return alert('Añadí al menos un ingrediente.');
+
+        const idEditar = document.getElementById('rec-id-editar').value;
+        const datos = {
+            nombre: nombreInput.value.trim(),
+            categoria: document.getElementById('rec-categoria').value,
+            margen_objetivo: parseFloat(document.getElementById('rec-margen-objetivo').value) || 20,
+            ingredientes: [...insumosAsignadosTemporales]
+        };
+
+        if(idEditar) {
+            await fetch(`${SUPABASE_URL}/rest/v1/recetas?id=eq.${idEditar}`, { method: "PATCH", headers: sHeaders, body: JSON.stringify(datos) });
+            document.getElementById('rec-id-editar').value = "";
+            document.getElementById('btn-guardar-receta').innerHTML = `Guardar Ficha Completa de la Vianda`;
+        } else {
+            await fetch(`${SUPABASE_URL}/rest/v1/recetas`, { method: "POST", headers: sHeaders, body: JSON.stringify(datos) });
+        }
+
+        insumosAsignadosTemporales = [];
+        nombreInput.value = "";
+        document.getElementById('rec-margen-objetivo').value = 20;
+        renderizarInsumosTemporalesHTML();
+        await inicializarBaseDeDatos();
+        alert('¡Receta guardada en la nube!');
+    }
+
+    function cargarParaEditar(id) {
+        const r = db.recetas.find(item => item.id === id); if(!r) return;
+        document.getElementById('rec-id-editar').value = r.id;
+        document.getElementById('rec-nombre').value = r.nombre;
+        document.getElementById('rec-categoria').value = r.categoria;
+        document.getElementById('rec-margen-objetivo').value = r.margen_objetivo;
+        insumosAsignadosTemporales = [...(r.ingredientes || [])];
+        renderizarInsumosTemporalesHTML();
+        document.getElementById('btn-guardar-receta').innerHTML = `Actualizar Receta`;
+        document.getElementById('rec-nombre').focus();
+    }
+
+    function calcularCostoElaboracionReceta(r) {
+        let total = 0; if(!r.ingredientes) return 0;
+        r.ingredientes.forEach(ins => {
+            const precioMaestro = db.maestro_insumos[ins.nombre] || 0;
+            if(ins.unidad === "g" || ins.unidad === "ml") total += (ins.cantidad / 1000) * precioMaestro;
+            else total += ins.cantidad * precioMaestro;
+        });
+        return total;
+    }
+
+    function recalcularEstrategiaPrecios() {
+        try {
+            if(!db.recetas || db.recetas.length === 0) return;
+            let sumaArancelesFinales = 0, sumaCostosVariablesTotales = 0;
+            db.recetas.forEach(r => {
+                const costElaboracion = calcularCostoElaboracionReceta(r);
+                sumaArancelesFinales += costElaboracion / (1 - ((r.margen_objetivo || 20) / 100));
+                sumaCostosVariablesTotales += costElaboracion;
+            });
+
+            const arancelPromedioColectivo = sumaArancelesFinales / db.recetas.length;
+            const costoVariablePromedioUnidad = sumaCostosVariablesTotales / db.recetas.length;
+            document.getElementById('txt-arancel-promedio-colectivo').innerText = `$${arancelPromedioColectivo.toFixed(0)}`;
+
+            const costoFijoMensual = obtenerCostosFijosMensuales();
+            [5, 10, 15, 20, 30].forEach(size => {
+                const packInput = document.getElementById(`pack-p-${size}`);
+                const precioPackActual = packInput ? (parseFloat(packInput.value) || 0) : 0;
+                document.getElementById(`sug-p-${size}`).innerText = `$${(arancelPromedioColectivo * size).toFixed(0)}`;
+                const margenContribucionPack = precioPackActual - (costoVariablePromedioUnidad * size);
+
+                const peElem = document.getElementById(`pe-${size}`);
+                const rowElem = document.getElementById(`row-pack-${size}`);
+                if (peElem && rowElem) {
+                    if(margenContribucionPack > 0) {
+                        peElem.innerText = Math.ceil(costoFijoMensual / margenContribucionPack).toLocaleString() + " packs/mes";
+                        rowElem.className = "divide-y divide-slate-900 font-mono";
+                    } else {
+                        peElem.innerText = "¡PÉRDIDA!";
+                        rowElem.className = "bg-rose-950/20 divide-y divide-slate-900 font-mono text-rose-400";
+                    }
+                }
+            });
+        } catch (e) { console.error(e); }
+    }
+
+    // ==========================================
+    // 5. CAJA DIARIA E HISTORIAL MULTI-CLOUD
+    // ==========================================
+    async function guardarDia() {
+        const fecha = document.getElementById('form-fecha').value; if(!fecha) return alert('Selecciona una fecha');
+        const indexEditar = document.getElementById('form-caja-index').value;
+        
+        const datosCaja = {
+            fecha,
+            ingreso_diarias: parseFloat(document.getElementById('form-ingreso_diarias').value) || 0,
+            ingreso_semanales: parseFloat(document.getElementById('form-ingreso_semanales').value) || 0,
+            almacen: parseFloat(document.getElementById('form-almacen').value) || 0,
+            pollo: parseFloat(document.getElementById('form-pollo').value) || 0,
+            pescado: parseFloat(document.getElementById('form-pescado').value) || 0,
+            carne: parseFloat(document.getElementById('form-carne').value) || 0,
+            verduleria: parseFloat(document.getElementById('form-verduleria').value) || 0,
+            packaging: parseFloat(document.getElementById('form-packaging').value) || 0,
+            logistica: parseFloat(document.getElementById('form-logistica').value) || 0,
+            limpieza: parseFloat(document.getElementById('form-limpieza').value) || 0
+        };
+
+        if(indexEditar !== "") {
+            const registroReal = db.caja[parseInt(indexEditar)];
+            await fetch(`${SUPABASE_URL}/rest/v1/caja_diaria?id=eq.${registroReal.id}`, { method: "PATCH", headers: sHeaders, body: JSON.stringify(datosCaja) });
+            document.getElementById('form-caja-index').value = "";
+            document.getElementById('titulo-form-caja').innerHTML = `<i class="fa-solid fa-plus text-emerald-400 mr-2"></i>Cargar Rendimiento Diario`;
+            document.getElementById('btn-submit-caja').innerText = "Guardar Caja del Día";
+        } else {
+            await fetch(`${SUPABASE_URL}/rest/v1/caja_diaria`, { method: "POST", headers: sHeaders, body: JSON.stringify(datosCaja) });
+        }
+
+        ['ingreso_diarias','ingreso_semanales','almacen','pollo','pescado','carne','verduleria','packaging','logistica','limpieza'].forEach(i => document.getElementById('form-'+i).value = 0);
+        await inicializarBaseDeDatos();
+        alert('¡Caja sincronizada!');
+    }
+
+    function cargarCajaParaEditar(index) {
+        const row = db.caja[index]; if(!row) return;
+        document.getElementById('form-caja-index').value = index;
+        document.getElementById('form-fecha').value = row.fecha;
+        ['ingreso_diarias','ingreso_semanales','almacen','pollo','pescado','carne','verduleria','packaging','logistica','limpieza'].forEach(i => document.getElementById('form-'+i).value = row[i]);
+        document.getElementById('titulo-form-caja').innerHTML = `<i class="fa-solid fa-pen-to-square text-amber-500 mr-2"></i>Editar Registro Caja`;
+        document.getElementById('btn-submit-caja').innerText = "Actualizar Registro";
+        cambiarPestana('caja');
+    }
+
+    async function eliminarDia(idx) {
+        if(confirm('¿Eliminar registro de caja de la nube?')) {
+            const registroReal = db.caja[idx];
+            await fetch(`${SUPABASE_URL}/rest/v1/caja_diaria?id=eq.${registroReal.id}`, { method: "DELETE", headers: sHeaders });
+            await inicializarBaseDeDatos();
+        }
+    }
+
+    async function eliminarReceta(id) {
+        if(confirm('¿Eliminar receta de la nube?')) {
+            await fetch(`${SUPABASE_URL}/rest/v1/recetas?id=eq.${id}`, { method: "DELETE", headers: sHeaders });
+            await inicializarBaseDeDatos();
+        }
+    }
+
+    function abrirMargenReceta(id) {
+        const receta = db.recetas.find(r => r.id === id); if(!receta) return;
+        const cTotal = calcularCostoElaboracionReceta(receta); const margenObj = receta.margen_objetivo || 20;
+        const arancelRecomendado = cTotal / (1 - (margenObj / 100));
+
+        document.getElementById('modal-titulo').innerText = receta.nombre;
+        document.getElementById('modal-costo-total').innerText = `$${cTotal.toFixed(0)}`;
+        document.getElementById('modal-ganancia-base').innerText = `$${(arancelRecomendado - cTotal).toFixed(0)}`;
+        document.getElementById('modal-arancel-base').innerText = `$${arancelRecomendado.toFixed(0)}`;
+        document.getElementById('modal-badge').innerText = receta.categoria === 'Carne' ? 'CON ADICIONAL CARNE' : 'ESTÁNDAR';
+        
+        const adicionalOnline = parseFloat(document.getElementById('cfg-adicional-carne')?.value) || 3000;
+        let htmlTabla = "";
+
+        [5, 10, 15, 20, 30].forEach(size => {
+            const precioPack = parseFloat(document.getElementById(`pack-p-${size}`)?.value) || 0;
+            let cobroUnitarioDelPack = precioPack / size;
+            if(receta.categoria === 'Carne') cobroUnitarioDelPack += adicionalOnline;
+
+            const gananciaRealPack = cobroUnitarioDelPack - cTotal;
+            const margenRealPack = (gananciaRealPack / cobroUnitarioDelPack) * 100;
+
+            htmlTabla += `
+                <tr class="${margenRealPack < margenObj ? 'bg-rose-950/20 text-rose-300' : ''}">
+                    <td>Pack x${size}</td>
+                    <td class="text-right">$${cobroUnitarioDelPack.toFixed(0)}</td>
+                    <td class="text-right font-bold">$${gananciaRealPack.toFixed(0)}</td>
+                    <td class="text-right font-bold ${margenRealPack >= margenObj ? 'text-emerald-400' : 'text-rose-400'}">${margenRealPack.toFixed(1)}%</td>
+                </tr>`;
+        });
+        document.getElementById('modal-tabla-cuerpo').innerHTML = htmlTabla;
+        document.getElementById('modal-margen').classList.remove('hidden');
+    }
+
+    function cerrarModal() { document.getElementById('modal-margen').classList.add('hidden'); }
+
+    function renderizarRecetas() {
+        let html = "";
+        (db.recetas || []).forEach(r => {
+            const cTotal = calcularCostoElaboracionReceta(r);
+            const margenObj = r.margen_objetivo || 20;
+            const arancelFinalVenta = cTotal / (1 - (margenObj / 100));
+
+            html += `<tr class="border-b border-slate-900 hover:bg-slate-900/40 transition">
+                <td class="p-2 font-medium">${r.nombre} <span class="text-[9px] block text-slate-400">${r.categoria}</span></td>
+                <td class="p-2 text-right font-mono">$${cTotal.toFixed(0)}</td>
+                <td class="p-2 text-center font-mono font-bold text-cyan-400">${margenObj}%</td>
+                <td class="p-2 text-right font-mono text-amber-400 font-semibold">$${(arancelFinalVenta - cTotal).toFixed(0)}</td>
+                <td class="p-2 text-right font-mono text-emerald-400 font-bold bg-emerald-950/10 border-x border-emerald-900/20">$${arancelFinalVenta.toFixed(0)}</td>
+                <td class="p-2 text-center space-x-1">
+                    <button onclick="cargarParaEditar(${r.id})" class="bg-amber-600/10 text-amber-400 px-2 py-1 rounded text-[10px] cursor-pointer">Editar</button>
+                    <button onclick="abrirMargenReceta(${r.id})" class="bg-indigo-600 text-white px-2 py-1 rounded text-[10px] cursor-pointer">Auditoría</button>
+                    <button onclick="eliminarReceta(${r.id})" class="text-rose-500 text-[11px] cursor-pointer"><i class="fa-solid fa-trash"></i></button>
+                </td>
+            </tr>`;
+        });
+        document.getElementById('tabla-recetas-cuerpo').innerHTML = html || '<tr><td colspan="6" class="p-2 text-center">No hay recetas.</td></tr>';
+    }
+
+    function renderizarTodo() {
+        recalcularEstrategiaPrecios();
+        renderizarRecetas();
+        
+        let totalIngresos = 0, totalEgresos = 0, tbodyHtml = "";
+        (db.caja || []).forEach((dia, index) => {
+            const ing = (dia.ingreso_diarias||0) + (dia.ingreso_semanales||0);
+            const eg = (dia.almacen||0) + (dia.pollo||0) + (dia.pescado||0) + (dia.carne||0) + (dia.verduleria||0) + (dia.packaging||0) + (dia.logistica||0) + (dia.limpieza||0);
+            totalIngresos += ing; totalEgresos += eg;
+            tbodyHtml += `<tr class="border-b border-slate-900">
+                <td class="p-3 font-mono text-slate-300 font-semibold">${dia.fecha}</td>
+                <td class="p-3 text-emerald-400 font-bold">$${ing.toLocaleString()}</td>
+                <td class="p-3 text-rose-400">$${eg.toLocaleString()}</td>
+                <td class="p-3 font-bold ${ing-eg >=0?'text-emerald-500':'text-rose-400'}">$${(ing-eg).toLocaleString()}</td>
+                <td class="p-3 text-center space-x-2">
+                    <button onclick="cargarCajaParaEditar(${index})" class="text-amber-500 cursor-pointer"><i class="fa-solid fa-pen-to-square"></i></button>
+                    <button onclick="eliminarDia(${index})" class="text-rose-500 cursor-pointer"><i class="fa-solid fa-trash"></i></button>
+                </td>
+            </tr>`;
+        });
+        const tCuerpo = document.getElementById('tabla-caja-cuerpo');
+        if(tCuerpo) tCuerpo.innerHTML = tbodyHtml;
+        document.getElementById('caja-total-ingresos').innerText = `$${ingTot = totalIngresos.toLocaleString()}`;
+        document.getElementById('caja-total-egresos').innerText = `$${egTot = totalEgresos.toLocaleString()}`;
+        document.getElementById('caja-neto').innerText = `$${(totalIngresos - totalEgresos).toLocaleString()}`;
+        
+        const dias = db.caja.length || 1;
+        const neta = (totalIngresos - totalEgresos) - ((obtenerCostosFijosMensuales()/30)*dias);
+        document.getElementById('caja-ganancia-neta-real').innerText = `$${neta.toLocaleString('es-AR', {maximumFractionDigits:0})}`;
+    }
+
+    // ==========================================
+    // 6. CONTROLADORES DE INICIO ASÍNCROCOS
+    // ==========================================
+    window.addEventListener('DOMContentLoaded', async () => {
+        await inicializarBaseDeDatos();
+        const inputFecha = document.getElementById('form-fecha');
+        if(inputFecha) inputFecha.value = new Date().toISOString().split('T')[0];
+    });
     </script>
 </body>
 </html>
