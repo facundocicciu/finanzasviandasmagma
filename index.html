@@ -436,28 +436,39 @@
             localStorage.removeItem('erp_viandas_v15_final');
             location.reload();
         }
-
-function descargarBackupSincronizado() {
+ 
+    function descargarBackupSincronizado() {
     try {
-        // Formateamos la fecha actual para el nombre del archivo (Año-Mes-Día)
+        // 1. Verificamos que la base de datos local tenga información
+        if (!db || (!db.caja.length && !db.recetas.length)) {
+            alert("Aviso: La base de datos local aún se está descargando de Supabase. Aguardá un segundo e intentá nuevamente.");
+            return;
+        }
+
+        // 2. Formateamos la fecha de hoy para el archivo
         const fechaHoy = new Date().toISOString().split('T')[0];
         
-        // Convertimos todo el objeto 'db' actual (que ya contiene los datos frescos de Supabase) a texto JSON legible
-        const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(db, null, 2));
+        // 3. Convertimos el objeto 'db' a texto JSON prolijo
+        const jsonString = JSON.stringify(db, null, 2);
         
-        // Creamos un elemento de descarga temporal "invisible"
+        // 4. Creamos un Blob (Objeto Binario) para evitar límites de tamaño del navegador
+        const blob = new Blob([jsonString], { type: "application/json;charset=utf-8;" });
+        const url = URL.createObjectURL(blob);
+        
+        // 5. Gatillamos la descarga automática de forma segura
         const downloadAnchor = document.createElement('a');
-        downloadAnchor.setAttribute("href", dataStr);
+        downloadAnchor.href = url;
         downloadAnchor.setAttribute("download", `Backup_ViandasPro_${fechaHoy}.json`);
         
-        // Agregamos al documento, gatillamos la descarga y removemos
         document.body.appendChild(downloadAnchor);
         downloadAnchor.click();
-        downloadAnchor.remove();
         
-        alert('¡Respaldo local generado y descargado con éxito!');
+        // 6. Limpieza de memoria
+        document.body.removeChild(downloadAnchor);
+        URL.revokeObjectURL(url);
+        
     } catch (error) {
-        alert('Error al compilar el backup: ' + error.message);
+        alert('Error crítico al compilar el backup: ' + error.message);
     }
 }
     }
