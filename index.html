@@ -55,6 +55,9 @@
                     <button onclick="cambiarPestana('recetas')" id="btn-tab-recetas" class="w-full flex items-center gap-3 text-slate-400 hover:bg-slate-900 hover:text-slate-200 px-4 py-3 rounded-xl font-medium text-left transition cursor-pointer">
                         <i class="fa-solid fa-book-open"></i> Escandallo, Insumos y Fijos
                     </button>
+                    <button onclick="descargarBackupSincronizado()" class="w-full bg-indigo-950/40 text-indigo-400 border border-indigo-900 hover:bg-indigo-900 hover:text-white transition text-[11px] py-1.5 rounded-lg font-mono cursor-pointer mb-2">
+    <i class="fa-solid fa-download mr-1"></i> Respaldar Base de Datos
+</button>
                 </nav>
             </div>
             <div class="space-y-2 border-t border-slate-800 pt-4">
@@ -433,6 +436,30 @@
             localStorage.removeItem('erp_viandas_v15_final');
             location.reload();
         }
+
+function descargarBackupSincronizado() {
+    try {
+        // Formateamos la fecha actual para el nombre del archivo (Año-Mes-Día)
+        const fechaHoy = new Date().toISOString().split('T')[0];
+        
+        // Convertimos todo el objeto 'db' actual (que ya contiene los datos frescos de Supabase) a texto JSON legible
+        const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(db, null, 2));
+        
+        // Creamos un elemento de descarga temporal "invisible"
+        const downloadAnchor = document.createElement('a');
+        downloadAnchor.setAttribute("href", dataStr);
+        downloadAnchor.setAttribute("download", `Backup_ViandasPro_${fechaHoy}.json`);
+        
+        // Agregamos al documento, gatillamos la descarga y removemos
+        document.body.appendChild(downloadAnchor);
+        downloadAnchor.click();
+        downloadAnchor.remove();
+        
+        alert('¡Respaldo local generado y descargado con éxito!');
+    } catch (error) {
+        alert('Error al compilar el backup: ' + error.message);
+    }
+}
     }
 
     // ==========================================
