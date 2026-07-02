@@ -439,23 +439,23 @@
  
     function descargarBackupSincronizado() {
     try {
-        // 1. Verificamos que la base de datos local tenga información
-        if (!db || (!db.caja.length && !db.recetas.length)) {
-            alert("Aviso: La base de datos local aún se está descargando de Supabase. Aguardá un segundo e intentá nuevamente.");
+        // 1. Validamos de forma segura que el objeto de datos exista y tenga registros
+        if (!db || !db.caja) {
+            alert("Aviso: La base de datos aún no terminó de sincronizar con Supabase. Aguardá un segundo e intentá de nuevo.");
             return;
         }
 
-        // 2. Formateamos la fecha de hoy para el archivo
+        // 2. Formateamos la fecha de hoy para estamparla en el nombre del archivo
         const fechaHoy = new Date().toISOString().split('T')[0];
         
-        // 3. Convertimos el objeto 'db' a texto JSON prolijo
+        // 3. Convertimos todo el objeto 'db' a texto limpio JSON de manera prolija
         const jsonString = JSON.stringify(db, null, 2);
         
-        // 4. Creamos un Blob (Objeto Binario) para evitar límites de tamaño del navegador
+        // 4. Creamos un Blob (Objeto Binario) para esquivar las restricciones de tamaño de CodePen/Railway
         const blob = new Blob([jsonString], { type: "application/json;charset=utf-8;" });
         const url = URL.createObjectURL(blob);
         
-        // 5. Gatillamos la descarga automática de forma segura
+        // 5. Generamos el disparador de descarga automática en el navegador
         const downloadAnchor = document.createElement('a');
         downloadAnchor.href = url;
         downloadAnchor.setAttribute("download", `Backup_ViandasPro_${fechaHoy}.json`);
@@ -463,12 +463,12 @@
         document.body.appendChild(downloadAnchor);
         downloadAnchor.click();
         
-        // 6. Limpieza de memoria
+        // 6. Limpieza absoluta de residuos en la memoria del navegador
         document.body.removeChild(downloadAnchor);
         URL.revokeObjectURL(url);
         
     } catch (error) {
-        alert('Error crítico al compilar el backup: ' + error.message);
+        alert('Error al compilar el respaldo de seguridad: ' + error.message);
     }
 }
     }
@@ -877,8 +877,8 @@
         });
         const tCuerpo = document.getElementById('tabla-caja-cuerpo');
         if(tCuerpo) tCuerpo.innerHTML = tbodyHtml;
-        document.getElementById('caja-total-ingresos').innerText = `$${ingTot = totalIngresos.toLocaleString()}`;
-        document.getElementById('caja-total-egresos').innerText = `$${egTot = totalEgresos.toLocaleString()}`;
+        document.getElementById('caja-total-ingresos').innerText = `$${totalIngresos.toLocaleString()}`;
+document.getElementById('caja-total-egresos').innerText = `$${totalEgresos.toLocaleString()}`;
         document.getElementById('caja-neto').innerText = `$${(totalIngresos - totalEgresos).toLocaleString()}`;
         
         const dias = db.caja.length || 1;
