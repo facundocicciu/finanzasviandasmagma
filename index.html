@@ -9,7 +9,35 @@
 </head>
 <body class="bg-slate-900 text-slate-100 min-h-screen font-sans antialiased">
 
-    <div class="flex flex-col lg:flex-row min-h-screen">
+    <div id="vista-login" class="min-h-screen flex items-center justify-center p-4 bg-slate-950">
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-md p-6 space-y-6 shadow-2xl text-slate-100">
+        <div class="text-center space-y-2">
+            <div class="inline-flex p-3 bg-emerald-500/10 text-emerald-400 rounded-xl text-2xl">
+                <i class="fa-solid fa-shield-halved"></i>
+            </div>
+            <h2 class="text-xl font-bold tracking-wider text-white">Panel Administrador</h2>
+            <p class="text-slate-400 text-xs">Ingresá tus credenciales para acceder a ViandasPro.</p>
+        </div>
+        <div class="space-y-4">
+            <div>
+                <label class="block text-xs text-slate-400 mb-1">Usuario</label>
+                <input type="text" id="login-usuario" placeholder="Usuario" class="w-full bg-slate-950 border border-slate-700 rounded-xl p-2.5 text-sm text-slate-200 focus:outline-none focus:border-emerald-500 font-sans">
+            </div>
+            <div>
+                <label class="block text-xs text-slate-400 mb-1">Contraseña</label>
+                <input type="password" id="login-pass" placeholder="••••••••" class="w-full bg-slate-950 border border-slate-700 rounded-xl p-2.5 text-sm text-slate-200 focus:outline-none focus:border-emerald-500 font-sans">
+            </div>
+            <div id="login-error" class="text-xs text-rose-400 hidden font-medium text-center bg-rose-500/10 p-2 rounded-xl border border-rose-950">
+                <i class="fa-solid fa-triangle-exclamation mr-1"></i> Usuario o contraseña incorrectos.
+            </div>
+            <button onclick="validarAccesoMagma()" class="w-full bg-emerald-600 hover:bg-emerald-500 font-bold py-2.5 rounded-xl transition text-sm text-white cursor-pointer">
+                <i class="fa-solid fa-right-to-bracket mr-1"></i> Iniciar Sesión
+            </button>
+        </div>
+    </div>
+</div>
+
+    <div id="vista-erp" class="flex flex-col lg:flex-row min-h-screen hidden">
         
         <aside class="w-full lg:w-64 bg-slate-950 p-6 flex flex-col justify-between border-b lg:border-b-0 lg:border-r border-slate-800">
             <div>
@@ -823,11 +851,42 @@
     // ==========================================
     // 6. CONTROLADORES DE INICIO ASÍNCROCOS
     // ==========================================
+    // ==========================================
+    // CONTROL DE AUTENTICACIÓN PROTEGIDO (LOGIN)
+    // ==========================================
+    function validarAccesoMagma() {
+        const user = document.getElementById('login-usuario').value.trim();
+        const pass = document.getElementById('login-pass').value;
+        const errorMsg = document.getElementById('login-error');
+
+        if (user === "viandasmagma" && pass === "cicciu199834dg") {
+            // Si es correcto, oculta el login y muestra el ERP
+            document.getElementById('vista-login').classList.add('hidden');
+            document.getElementById('vista-erp').classList.remove('hidden');
+            errorMsg.classList.add('hidden');
+            
+            // Guarda la sesión para que no te la vuelva a pedir al tocar el código
+            try { sessionStorage.setItem('sesion_viandas_magma', 'true'); } catch(e){}
+        } else {
+            errorMsg.classList.remove('hidden');
+        }
+    }
+
+    // ARRANQUE INICIAL: Revisa si ya iniciaste sesión antes de descargar los datos
     window.addEventListener('DOMContentLoaded', async () => {
+        try {
+            if (sessionStorage.getItem('sesion_viandas_magma') === 'true') {
+                document.getElementById('vista-login').classList.add('hidden');
+                document.getElementById('vista-erp').classList.remove('hidden');
+            }
+        } catch(e){}
+        
+        // Ejecuta la descarga de datos desde Supabase
         await inicializarBaseDeDatos();
+        
         const inputFecha = document.getElementById('form-fecha');
         if(inputFecha) inputFecha.value = new Date().toISOString().split('T')[0];
     });
-    </script>
+</script>
 </body>
 </html>
